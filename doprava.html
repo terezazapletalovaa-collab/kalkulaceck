@@ -31,7 +31,7 @@
       line-height: 1.45;
     }
 
-    button, input, select { font: inherit; }
+    button, input, select, textarea { font: inherit; }
     button { cursor: pointer; }
 
     .page {
@@ -145,15 +145,15 @@
     tbody tr:last-child td { border-bottom: 0; }
     tbody tr:hover { background: #fbfcfe; }
 
-    .col-name { width: 25%; }
-    .col-km { width: 10%; }
-    .col-kmplus { width: 12%; }
-    .col-rate { width: 10%; }
-    .col-tax { width: 12%; }
-    .col-map { width: 18%; min-width: 240px; }
-    .col-action { width: 13%; min-width: 185px; }
+    .col-name { width: 23%; min-width: 300px; }
+    .col-map { width: 19%; min-width: 250px; }
+    .col-km { width: 9%; }
+    .col-kmplus { width: 10%; }
+    .col-rate { width: 9%; }
+    .col-tax { width: 11%; }
+    .col-action { width: 19%; min-width: 185px; }
 
-    input, select {
+    input, select, textarea {
       width: 100%;
       min-height: 39px;
       padding: 8px 10px;
@@ -164,7 +164,7 @@
       outline: none;
     }
 
-    input:focus, select:focus {
+    input:focus, select:focus, textarea:focus {
       border-color: var(--primary);
       box-shadow: 0 0 0 3px rgba(23, 92, 211, .12);
     }
@@ -178,6 +178,77 @@
       display: flex;
       gap: 6px;
       align-items: center;
+    }
+
+    .name-cell {
+      display: grid;
+      gap: 7px;
+      position: relative;
+    }
+
+    .name-main-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .note-toggle {
+      position: relative;
+      min-height: 39px;
+      padding: 7px 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: #475467;
+      background: #fff;
+      font-size: .79rem;
+      font-weight: 750;
+      white-space: nowrap;
+    }
+
+    .note-toggle:hover {
+      border-color: #9db9eb;
+      background: var(--primary-soft);
+    }
+
+    .note-toggle.has-note {
+      color: #194185;
+      border-color: #9db9eb;
+      background: var(--primary-soft);
+    }
+
+    .note-toggle.has-note::after {
+      content: "";
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--primary);
+    }
+
+    .note-editor {
+      padding: 9px;
+      border: 1px solid #b8cdf4;
+      border-radius: 9px;
+      background: var(--primary-soft);
+    }
+
+    .note-editor[hidden] {
+      display: none !important;
+    }
+
+    .note-editor textarea {
+      min-height: 86px;
+      resize: vertical;
+      background: #fff;
+    }
+
+    .note-editor-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 7px;
     }
 
     .empty-state {
@@ -194,6 +265,23 @@
       background: var(--primary-soft);
       color: #344054;
       font-size: .86rem;
+    }
+
+
+    .share-notice {
+      display: none;
+      margin: 16px 0;
+      padding: 12px 14px;
+      border: 1px solid #9db9eb;
+      border-radius: 12px;
+      color: #194185;
+      background: var(--primary-soft);
+      font-size: .9rem;
+      font-weight: 700;
+    }
+
+    .share-notice.visible {
+      display: block;
     }
 
     @media (max-width: 760px) {
@@ -215,16 +303,21 @@
         </p>
       </div>
       <div class="hero-actions">
+        <a class="button button-light" href="databaze.html">Databáze kalkulací</a>
         <a class="button button-light" href="index.html">Zpět do kalkulačky</a>
       </div>
     </header>
 
     <div class="toolbar">
-      <p>Zadaný seznam se automaticky ukládá v tomto prohlížeči.</p>
+      <p>Seznam se ukládá v tomto prohlížeči. Jednotlivý řádek můžete sdílet unikátním odkazem i do jiného prohlížeče.</p>
       <div class="toolbar-actions">
         <button class="button button-primary" type="button" id="addRowButton">Přidat zájezd</button>
         <button class="button button-secondary" type="button" id="clearListButton">Vymazat seznam</button>
       </div>
+    </div>
+
+    <div class="share-notice" id="shareNotice" role="status">
+      Sdílený řádek byl načten a uložen do tohoto prohlížeče.
     </div>
 
     <section class="card">
@@ -233,11 +326,11 @@
           <thead>
             <tr>
               <th class="col-name">Název zájezdu</th>
+              <th class="col-map">Google Maps</th>
               <th class="col-km">Kilometry</th>
               <th class="col-kmplus">Km + 9 %</th>
               <th class="col-rate">Kč / km</th>
               <th class="col-tax">Daň + parkovné</th>
-              <th class="col-map">Google Maps</th>
               <th class="col-action">Kalkulace</th>
             </tr>
           </thead>
@@ -248,7 +341,8 @@
     </section>
 
     <div class="info">
-      Název zájezdu i ostatní zadané údaje se průběžně ukládají v tomto prohlížeči a zůstanou zachované i po zavření stránky.
+      Název zájezdu, skrytá poznámka i ostatní zadané údaje se průběžně ukládají v tomto prohlížeči a zůstanou zachované i po zavření stránky.
+      Tlačítko „Sdílet řádek“ vytvoří unikátní odkaz obsahující všechny údaje daného řádku. Po otevření odkazu v jiném prohlížeči nebo na jiném počítači se řádek automaticky načte a uloží i tam.
       Přenos do kalkulačky vyplní název zájezdu, základní kilometry, sazbu Kč/km a daň + parkovné. Odkaz na Google Maps zůstává uložený v seznamu dopravy.
       Odhad kilometrů se v kalkulačce dopočítá podle parametru rezervy trasy (výchozí hodnota je 9 %).
     </div>
@@ -274,6 +368,7 @@
       return {
         id: createId(),
         name: "",
+        note: "",
         km: 0,
         rate: 40,
         taxParking: 0,
@@ -289,7 +384,8 @@
             ...defaultRow(),
             ...row,
             id: row.id || createId(),
-            mapsUrl: row.mapsUrl || ""
+            mapsUrl: row.mapsUrl || "",
+            note: row.note || ""
           }));
         }
       } catch (error) {
@@ -300,6 +396,90 @@
 
     function saveRows() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(rows));
+    }
+
+
+    function encodeSharedRow(row) {
+      const payload = JSON.stringify({
+        id: row.id,
+        name: row.name || "",
+        note: row.note || "",
+        km: normalizeNumber(row.km),
+        rate: normalizeNumber(row.rate) || 40,
+        taxParking: normalizeNumber(row.taxParking),
+        mapsUrl: row.mapsUrl || ""
+      });
+
+      const bytes = new TextEncoder().encode(payload);
+      let binary = "";
+      bytes.forEach(byte => { binary += String.fromCharCode(byte); });
+
+      return btoa(binary)
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=+$/g, "");
+    }
+
+    function decodeSharedRow(encoded) {
+      try {
+        const normalized = encoded.replace(/-/g, "+").replace(/_/g, "/");
+        const padded = normalized + "=".repeat((4 - normalized.length % 4) % 4);
+        const binary = atob(padded);
+        const bytes = Uint8Array.from(binary, char => char.charCodeAt(0));
+        const data = JSON.parse(new TextDecoder().decode(bytes));
+
+        return {
+          id: data.id || createId(),
+          name: String(data.name || ""),
+          note: String(data.note || ""),
+          km: normalizeNumber(data.km),
+          rate: normalizeNumber(data.rate) || 40,
+          taxParking: normalizeNumber(data.taxParking),
+          mapsUrl: String(data.mapsUrl || "")
+        };
+      } catch (error) {
+        console.warn("Sdílený řádek se nepodařilo načíst.", error);
+        return null;
+      }
+    }
+
+    function importSharedRowFromUrl() {
+      const hash = window.location.hash || "";
+      const match = hash.match(/^#row=([^&]+)/);
+      if (!match) return false;
+
+      const sharedRow = decodeSharedRow(match[1]);
+      if (!sharedRow) return false;
+
+      const existingIndex = rows.findIndex(row => row.id === sharedRow.id);
+      if (existingIndex >= 0) {
+        rows[existingIndex] = { ...rows[existingIndex], ...sharedRow };
+      } else {
+        rows.unshift(sharedRow);
+      }
+
+      saveRows();
+
+      const notice = document.getElementById("shareNotice");
+      if (notice) notice.classList.add("visible");
+      return true;
+    }
+
+    async function shareRow(id) {
+      const row = rows.find(item => item.id === id);
+      if (!row) return;
+
+      saveRows();
+
+      const url = new URL("doprava.html", window.location.href);
+      url.hash = `row=${encodeSharedRow(row)}`;
+
+      try {
+        await navigator.clipboard.writeText(url.toString());
+        alert("Odkaz na tento řádek byl zkopírován. Můžete ho poslat dál.");
+      } catch (error) {
+        window.prompt("Zkopírujte odkaz na tento řádek:", url.toString());
+      }
     }
 
     function normalizeNumber(value) {
@@ -335,7 +515,24 @@
         return `
           <tr data-row-id="${row.id}">
             <td>
-              <input class="row-input" data-field="name" type="text" value="${escapeHtml(row.name)}" placeholder="Název zájezdu">
+              <div class="name-cell">
+                <div class="name-main-row">
+                  <input class="row-input" data-field="name" type="text" value="${escapeHtml(row.name)}" placeholder="Název zájezdu">
+                  <button class="note-toggle ${String(row.note || "").trim() ? "has-note" : ""}" type="button" title="${String(row.note || "").trim() ? "Poznámka je uložená" : "Přidat poznámku"}">Poznámka</button>
+                </div>
+                <div class="note-editor" hidden>
+                  <textarea class="row-input" data-field="note" placeholder="Skrytá poznámka k zájezdu…">${escapeHtml(row.note || "")}</textarea>
+                  <div class="note-editor-actions">
+                    <button class="button button-secondary button-small close-note" type="button">Zavřít</button>
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="action-buttons">
+                <input class="row-input" data-field="mapsUrl" type="url" value="${escapeHtml(row.mapsUrl || "")}" placeholder="https://maps.google.com/…" aria-label="Odkaz na Google Maps">
+                <button class="button button-secondary button-small open-map" type="button" ${row.mapsUrl ? "" : "disabled"}>Mapa</button>
+              </div>
             </td>
             <td>
               <input class="row-input" data-field="km" type="number" min="0" step="1" value="${normalizeNumber(row.km)}">
@@ -351,13 +548,8 @@
             </td>
             <td>
               <div class="action-buttons">
-                <input class="row-input" data-field="mapsUrl" type="url" value="${escapeHtml(row.mapsUrl || "")}" placeholder="https://maps.google.com/…" aria-label="Odkaz na Google Maps">
-                <button class="button button-secondary button-small open-map" type="button" ${row.mapsUrl ? "" : "disabled"}>Mapa</button>
-              </div>
-            </td>
-            <td>
-              <div class="action-buttons">
                 <button class="button button-primary button-small open-calculation" type="button">Otevřít kalkulačku</button>
+                <button class="button button-secondary button-small share-row" type="button">Sdílet řádek</button>
                 <button class="button button-danger button-small delete-row" type="button" aria-label="Smazat řádek">×</button>
               </div>
             </td>
@@ -374,6 +566,25 @@
         control.addEventListener("change", handleRowChange);
       });
 
+      rowsContainer.querySelectorAll(".note-toggle").forEach(button => {
+        button.addEventListener("click", event => {
+          const rowElement = event.currentTarget.closest("tr");
+          const editor = rowElement.querySelector(".note-editor");
+          const shouldOpen = editor.hidden;
+          editor.hidden = !shouldOpen;
+          if (shouldOpen) {
+            editor.querySelector('[data-field="note"]')?.focus();
+          }
+        });
+      });
+
+      rowsContainer.querySelectorAll(".close-note").forEach(button => {
+        button.addEventListener("click", event => {
+          const rowElement = event.currentTarget.closest("tr");
+          rowElement.querySelector(".note-editor").hidden = true;
+        });
+      });
+
       rowsContainer.querySelectorAll(".open-map").forEach(button => {
         button.addEventListener("click", event => {
           const rowElement = event.currentTarget.closest("tr");
@@ -385,6 +596,13 @@
         button.addEventListener("click", event => {
           const rowElement = event.currentTarget.closest("tr");
           openCalculator(rowElement.dataset.rowId);
+        });
+      });
+
+      rowsContainer.querySelectorAll(".share-row").forEach(button => {
+        button.addEventListener("click", event => {
+          const rowElement = event.currentTarget.closest("tr");
+          shareRow(rowElement.dataset.rowId);
         });
       });
 
@@ -402,7 +620,7 @@
       if (!row) return;
 
       const field = event.currentTarget.dataset.field;
-      if (field === "name" || field === "mapsUrl") {
+      if (field === "name" || field === "mapsUrl" || field === "note") {
         row[field] = event.currentTarget.value;
       } else {
         row[field] = normalizeNumber(event.currentTarget.value);
@@ -415,6 +633,15 @@
       if (field === "mapsUrl") {
         const mapButton = rowElement.querySelector(".open-map");
         if (mapButton) mapButton.disabled = !row.mapsUrl.trim();
+      }
+
+      if (field === "note") {
+        const noteButton = rowElement.querySelector(".note-toggle");
+        const hasNote = Boolean(String(row.note || "").trim());
+        if (noteButton) {
+          noteButton.classList.toggle("has-note", hasNote);
+          noteButton.title = hasNote ? "Poznámka je uložená" : "Přidat poznámku";
+        }
       }
 
       saveRows();
@@ -482,6 +709,7 @@
     document.getElementById("clearListButton").addEventListener("click", clearList);
     window.addEventListener("beforeunload", saveRows);
 
+    importSharedRowFromUrl();
     renderRows();
   </script>
 </body>
