@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Seznam dopravy pro kalkulace poznávacích zájezdů">
+  <title>Seznam dopravy | Kalkulace zájezdů</title>
+  <style>
+    :root {
+      --bg: #f3f5f8;
+      --surface: #ffffff;
+      --surface-soft: #f8fafc;
+      --text: #172033;
+      --muted: #667085;
+      --line: #d9e0ea;
+      --primary: #175cd3;
+      --primary-dark: #0b4cb8;
+      --primary-soft: #eaf2ff;
+      --danger: #b42318;
+      --shadow: 0 10px 30px rgba(23, 32, 51, 0.08);
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.45;
+    }
+
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+
+    .page {
+      width: min(1500px, calc(100% - 32px));
+      margin: 24px auto 48px;
+    }
+
+    .hero {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 26px 28px;
+      border-radius: var(--radius);
+      color: #fff;
+      background:
+        radial-gradient(circle at 85% 20%, rgba(255,255,255,.18), transparent 28%),
+        linear-gradient(135deg, #123d7a, #175cd3 58%, #0f766e);
+      box-shadow: var(--shadow);
+    }
+
+    .hero h1 {
+      margin: 0 0 6px;
+      font-size: clamp(1.65rem, 3vw, 2.5rem);
+      line-height: 1.15;
+    }
+
+    .hero p {
+      max-width: 760px;
+      margin: 0;
+      color: rgba(255,255,255,.84);
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 9px 15px;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      text-decoration: none;
+      font-weight: 750;
+      transition: transform .15s ease, background .15s ease;
+    }
+
+    .button:hover { transform: translateY(-1px); }
+    .button-light { color: #123d7a; background: #fff; }
+    .button-primary { color: #fff; background: var(--primary); }
+    .button-primary:hover { background: var(--primary-dark); }
+    .button-secondary { color: var(--text); background: #fff; border-color: var(--line); }
+    .button-danger { color: var(--danger); background: #fff; border-color: #f1b7b2; }
+    .button-small { min-height: 36px; padding: 7px 11px; font-size: .84rem; }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 16px 0;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--surface);
+    }
+
+    .toolbar p { margin: 0; color: var(--muted); font-size: .9rem; }
+    .toolbar-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .card {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: 0 4px 18px rgba(23, 32, 51, .05);
+    }
+
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      min-width: 1240px;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 11px 10px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: middle;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      color: #344054;
+      background: var(--surface-soft);
+      font-size: .78rem;
+      text-transform: uppercase;
+      letter-spacing: .035em;
+    }
+
+    tbody tr:last-child td { border-bottom: 0; }
+    tbody tr:hover { background: #fbfcfe; }
+
+    .col-name { width: 25%; }
+    .col-km { width: 10%; }
+    .col-kmplus { width: 12%; }
+    .col-rate { width: 10%; }
+    .col-tax { width: 12%; }
+    .col-map { width: 18%; min-width: 240px; }
+    .col-action { width: 13%; min-width: 185px; }
+
+    input, select {
+      width: 100%;
+      min-height: 39px;
+      padding: 8px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      color: var(--text);
+      background: #fff;
+      outline: none;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(23, 92, 211, .12);
+    }
+
+    input[readonly] {
+      color: #475467;
+      background: #eef1f5;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .empty-state {
+      display: none;
+      padding: 32px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .info {
+      margin-top: 14px;
+      padding: 11px 13px;
+      border-left: 4px solid var(--primary);
+      background: var(--primary-soft);
+      color: #344054;
+      font-size: .86rem;
+    }
+
+    @media (max-width: 760px) {
+      .page { width: calc(100% - 20px); margin-top: 10px; }
+      .hero { flex-direction: column; padding: 22px 20px; }
+      .hero-actions { justify-content: flex-start; }
+      .toolbar { align-items: flex-start; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <div>
+        <h1>Seznam dopravy</h1>
+        <p>
+          Připravte si dopravní náklady jednotlivých zájezdů. Sloupec „Km + 9 %“ se počítá automaticky.
+          Tlačítko u řádku otevře kalkulačku s předvyplněnou dopravou.
+        </p>
+      </div>
+      <div class="hero-actions">
+        <a class="button button-light" href="index.html">Zpět do kalkulačky</a>
+      </div>
+    </header>
+
+    <div class="toolbar">
+      <p>Zadaný seznam se automaticky ukládá v tomto prohlížeči.</p>
+      <div class="toolbar-actions">
+        <button class="button button-primary" type="button" id="addRowButton">Přidat zájezd</button>
+        <button class="button button-secondary" type="button" id="clearListButton">Vymazat seznam</button>
+      </div>
+    </div>
+
+    <section class="card">
+      <div class="table-wrap">
+        <table aria-label="Seznam dopravy">
+          <thead>
+            <tr>
+              <th class="col-name">Název zájezdu</th>
+              <th class="col-km">Kilometry</th>
+              <th class="col-kmplus">Km + 9 %</th>
+              <th class="col-rate">Kč / km</th>
+              <th class="col-tax">Daň + parkovné</th>
+              <th class="col-map">Google Maps</th>
+              <th class="col-action">Kalkulace</th>
+            </tr>
+          </thead>
+          <tbody id="transportRows"></tbody>
+        </table>
+      </div>
+      <div class="empty-state" id="emptyState">Seznam je prázdný. Přidejte první zájezd.</div>
+    </section>
+
+    <div class="info">
+      Název zájezdu i ostatní zadané údaje se průběžně ukládají v tomto prohlížeči a zůstanou zachované i po zavření stránky.
+      Přenos do kalkulačky vyplní název zájezdu, základní kilometry, sazbu Kč/km a daň + parkovné. Odkaz na Google Maps zůstává uložený v seznamu dopravy.
+      Odhad kilometrů se v kalkulačce dopočítá podle parametru rezervy trasy (výchozí hodnota je 9 %).
+    </div>
+  </main>
+
+  <script>
+    "use strict";
+
+    const STORAGE_KEY = "poznavaciZajezdySeznamDopravyV1";
+    const rowsContainer = document.getElementById("transportRows");
+    const emptyState = document.getElementById("emptyState");
+
+    let rows = loadRows();
+
+    function createId() {
+      if (window.crypto && typeof window.crypto.randomUUID === "function") {
+        return window.crypto.randomUUID();
+      }
+      return `row-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+    }
+
+    function defaultRow() {
+      return {
+        id: createId(),
+        name: "",
+        km: 0,
+        rate: 40,
+        taxParking: 0,
+        mapsUrl: ""
+      };
+    }
+
+    function loadRows() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        if (Array.isArray(saved) && saved.length) {
+          return saved.map(row => ({
+            ...defaultRow(),
+            ...row,
+            id: row.id || createId(),
+            mapsUrl: row.mapsUrl || ""
+          }));
+        }
+      } catch (error) {
+        console.warn("Seznam dopravy se nepodařilo načíst.", error);
+      }
+      return [defaultRow()];
+    }
+
+    function saveRows() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(rows));
+    }
+
+    function normalizeNumber(value) {
+      const number = Number(String(value ?? "").replace(",", "."));
+      return Number.isFinite(number) && number >= 0 ? number : 0;
+    }
+
+    function formatKm(value) {
+      return new Intl.NumberFormat("cs-CZ", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2
+      }).format(value);
+    }
+
+    function rateOptions(selected) {
+      return [40, 41, 42, 43, 44, 45, 46]
+        .map(rate => `<option value="${rate}" ${Number(selected) === rate ? "selected" : ""}>${rate} Kč/km</option>`)
+        .join("");
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function renderRows() {
+      rowsContainer.innerHTML = rows.map(row => {
+        const increasedKm = normalizeNumber(row.km) * 1.09;
+        return `
+          <tr data-row-id="${row.id}">
+            <td>
+              <input class="row-input" data-field="name" type="text" value="${escapeHtml(row.name)}" placeholder="Název zájezdu">
+            </td>
+            <td>
+              <input class="row-input" data-field="km" type="number" min="0" step="1" value="${normalizeNumber(row.km)}">
+            </td>
+            <td>
+              <input class="km-plus-output" type="text" value="${formatKm(increasedKm)}" readonly>
+            </td>
+            <td>
+              <select class="row-input" data-field="rate">${rateOptions(row.rate)}</select>
+            </td>
+            <td>
+              <input class="row-input" data-field="taxParking" type="number" min="0" step="1" value="${normalizeNumber(row.taxParking)}">
+            </td>
+            <td>
+              <div class="action-buttons">
+                <input class="row-input" data-field="mapsUrl" type="url" value="${escapeHtml(row.mapsUrl || "")}" placeholder="https://maps.google.com/…" aria-label="Odkaz na Google Maps">
+                <button class="button button-secondary button-small open-map" type="button" ${row.mapsUrl ? "" : "disabled"}>Mapa</button>
+              </div>
+            </td>
+            <td>
+              <div class="action-buttons">
+                <button class="button button-primary button-small open-calculation" type="button">Otevřít kalkulačku</button>
+                <button class="button button-danger button-small delete-row" type="button" aria-label="Smazat řádek">×</button>
+              </div>
+            </td>
+          </tr>`;
+      }).join("");
+
+      emptyState.style.display = rows.length ? "none" : "block";
+      bindRowEvents();
+    }
+
+    function bindRowEvents() {
+      rowsContainer.querySelectorAll(".row-input").forEach(control => {
+        control.addEventListener("input", handleRowChange);
+        control.addEventListener("change", handleRowChange);
+      });
+
+      rowsContainer.querySelectorAll(".open-map").forEach(button => {
+        button.addEventListener("click", event => {
+          const rowElement = event.currentTarget.closest("tr");
+          openMap(rowElement.dataset.rowId);
+        });
+      });
+
+      rowsContainer.querySelectorAll(".open-calculation").forEach(button => {
+        button.addEventListener("click", event => {
+          const rowElement = event.currentTarget.closest("tr");
+          openCalculator(rowElement.dataset.rowId);
+        });
+      });
+
+      rowsContainer.querySelectorAll(".delete-row").forEach(button => {
+        button.addEventListener("click", event => {
+          const rowElement = event.currentTarget.closest("tr");
+          deleteRow(rowElement.dataset.rowId);
+        });
+      });
+    }
+
+    function handleRowChange(event) {
+      const rowElement = event.currentTarget.closest("tr");
+      const row = rows.find(item => item.id === rowElement.dataset.rowId);
+      if (!row) return;
+
+      const field = event.currentTarget.dataset.field;
+      if (field === "name" || field === "mapsUrl") {
+        row[field] = event.currentTarget.value;
+      } else {
+        row[field] = normalizeNumber(event.currentTarget.value);
+      }
+
+      if (field === "km") {
+        rowElement.querySelector(".km-plus-output").value = formatKm(row.km * 1.09);
+      }
+
+      if (field === "mapsUrl") {
+        const mapButton = rowElement.querySelector(".open-map");
+        if (mapButton) mapButton.disabled = !row.mapsUrl.trim();
+      }
+
+      saveRows();
+    }
+
+    function addRow() {
+      rows.push(defaultRow());
+      saveRows();
+      renderRows();
+      const lastRow = rowsContainer.lastElementChild;
+      lastRow?.querySelector('[data-field="name"]')?.focus();
+    }
+
+    function deleteRow(id) {
+      rows = rows.filter(row => row.id !== id);
+      saveRows();
+      renderRows();
+    }
+
+    function clearList() {
+      if (!rows.length || confirm("Opravdu chcete vymazat celý seznam dopravy?")) {
+        rows = [defaultRow()];
+        saveRows();
+        renderRows();
+      }
+    }
+
+    function normalizeUrl(value) {
+      const trimmed = String(value || "").trim();
+      if (!trimmed) return "";
+      if (/^https?:\/\//i.test(trimmed)) return trimmed;
+      return `https://${trimmed}`;
+    }
+
+    function openMap(id) {
+      const row = rows.find(item => item.id === id);
+      if (!row) return;
+
+      const url = normalizeUrl(row.mapsUrl);
+      if (!url) return;
+
+      try {
+        const parsed = new URL(url);
+        window.open(parsed.toString(), "_blank", "noopener");
+      } catch (error) {
+        alert("Odkaz na Google Maps není platný.");
+      }
+    }
+
+    function openCalculator(id) {
+      const row = rows.find(item => item.id === id);
+      if (!row) return;
+
+      saveRows();
+      const url = new URL("index.html", window.location.href);
+      url.searchParams.set("source", "transport-list");
+      url.searchParams.set("tourName", row.name || "");
+      url.searchParams.set("routeKm", normalizeNumber(row.km));
+      url.searchParams.set("kmRate", normalizeNumber(row.rate) || 40);
+      url.searchParams.set("taxParking", normalizeNumber(row.taxParking));
+      window.open(url.toString(), "_blank", "noopener");
+    }
+
+    document.getElementById("addRowButton").addEventListener("click", addRow);
+    document.getElementById("clearListButton").addEventListener("click", clearList);
+    window.addEventListener("beforeunload", saveRows);
+
+    renderRows();
+  </script>
+</body>
+</html>

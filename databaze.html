@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Lokální databáze exportovaných kalkulací poznávacích zájezdů">
+  <title>Databáze kalkulací</title>
+  <style>
+    :root {
+      --bg:#f3f5f8;--surface:#fff;--surface-soft:#f8fafc;--text:#172033;--muted:#667085;
+      --line:#d9e0ea;--primary:#175cd3;--primary-dark:#0b4cb8;--primary-soft:#eaf2ff;
+      --danger:#b42318;--danger-soft:#fef3f2;--success:#067647;--success-soft:#ecfdf3;
+      --shadow:0 10px 30px rgba(23,32,51,.08);--radius:16px;
+    }
+    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.45}
+    button,input{font:inherit} button{cursor:pointer}.page{width:min(1450px,calc(100% - 32px));margin:24px auto 48px}
+    .hero{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;padding:26px 28px;border-radius:var(--radius);color:#fff;background:radial-gradient(circle at 85% 20%,rgba(255,255,255,.18),transparent 28%),linear-gradient(135deg,#123d7a,#175cd3 58%,#0f766e);box-shadow:var(--shadow)}
+    .hero h1{margin:0 0 6px;font-size:clamp(1.65rem,3vw,2.5rem);line-height:1.15}.hero p{max-width:790px;margin:0;color:rgba(255,255,255,.84)}
+    .hero-actions,.toolbar-actions,.actions{display:flex;flex-wrap:wrap;gap:8px}.hero-actions{justify-content:flex-end}.button{min-height:40px;padding:9px 14px;border:1px solid transparent;border-radius:10px;font-weight:750;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}.button-light{background:#fff;color:#123d7a}.button-ghost{color:#fff;border-color:rgba(255,255,255,.4);background:rgba(255,255,255,.08)}.button-primary{color:#fff;background:var(--primary)}.button-secondary{color:var(--text);border-color:var(--line);background:#fff}.button-danger{color:var(--danger);border-color:#f4b7b1;background:var(--danger-soft)}
+    .toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:16px 0;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+    .search{width:min(440px,100%);min-height:42px;padding:9px 12px;border:1px solid #cbd5e1;border-radius:9px;outline:none}.search:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(23,92,211,.12)}
+    .stats{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 16px}.stat{padding:10px 13px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}.stat span{color:var(--muted);font-size:.78rem}.stat strong{margin-left:6px}
+    .card{overflow:hidden;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);box-shadow:0 4px 18px rgba(23,32,51,.05)}.table-wrap{overflow:auto}table{width:100%;min-width:1050px;border-collapse:collapse}th,td{padding:12px 11px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}th{position:sticky;top:0;z-index:1;background:#eef3f9;color:#344054;font-size:.78rem;text-transform:uppercase;letter-spacing:.025em}td{font-size:.9rem}.tour-name{font-weight:800}.sub{display:block;margin-top:3px;color:var(--muted);font-size:.76rem}.tag{display:inline-block;padding:4px 8px;border-radius:999px;background:var(--primary-soft);color:#194185;font-size:.74rem;font-weight:800}.tag.pdf{background:#f3e8ff;color:#7e22ce}.tag.saved{background:#eef2f6;color:#475467}.margin-positive{color:var(--success);font-weight:800}.empty{display:none;padding:48px 20px;text-align:center;color:var(--muted)}
+    .info{margin-top:16px;padding:12px 14px;border-left:4px solid var(--primary);background:var(--primary-soft);color:#344054;font-size:.87rem}.toast{position:fixed;right:20px;bottom:20px;padding:11px 14px;border-radius:10px;color:#fff;background:#172033;box-shadow:var(--shadow);opacity:0;transform:translateY(10px);pointer-events:none;transition:.2s}.toast.show{opacity:1;transform:none}
+    @media(max-width:800px){.page{width:calc(100% - 20px);margin-top:10px}.hero,.toolbar{flex-direction:column}.hero-actions{justify-content:flex-start}.toolbar{align-items:stretch}.search{width:100%}}
+  </style>
+</head>
+<body>
+<main class="page">
+  <header class="hero">
+    <div>
+      <h1>Databáze kalkulací</h1>
+      <p>Archiv exportovaných kalkulací. Záznam lze znovu otevřít jako statickou kalkulaci, vytisknout do PDF nebo zkopírovat jeho unikátní odkaz.</p>
+    </div>
+    <div class="hero-actions">
+      <a class="button button-ghost" href="doprava.html">Seznam dopravy</a>
+      <a class="button button-light" href="index.html">Nová kalkulace</a>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <input class="search" id="searchInput" type="search" placeholder="Hledat podle názvu zájezdu nebo ID…" autocomplete="off">
+    <div class="toolbar-actions">
+      <button class="button button-secondary" type="button" id="downloadBackupButton">Stáhnout zálohu</button>
+      <label class="button button-secondary" for="importFile">Načíst zálohu</label>
+      <input id="importFile" type="file" accept="application/json,.json" hidden>
+      <button class="button button-danger" type="button" id="clearDatabaseButton">Vymazat databázi</button>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><span>Počet záznamů</span><strong id="recordCount">0</strong></div>
+    <div class="stat"><span>Poslední export</span><strong id="lastExport">–</strong></div>
+  </div>
+
+  <section class="card">
+    <div class="table-wrap">
+      <table aria-label="Databáze kalkulací">
+        <thead>
+          <tr>
+            <th>Datum</th><th>Název zájezdu</th><th>Typ</th><th>Náklad / osoba</th><th>Prodejní cena</th><th>Marže</th><th>Akce</th>
+          </tr>
+        </thead>
+        <tbody id="databaseRows"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="emptyState">Databáze je zatím prázdná. První záznam vznikne po exportu nebo po kliknutí na „Uložit do databáze“ v kalkulačce.</div>
+  </section>
+
+  <div class="info">
+    Tato verze používá úložiště prohlížeče. Záznamy proto zůstanou zachované po zavření stránky, ale jsou dostupné jen ve stejném prohlížeči a na stejné adrese GitHub Pages. Tlačítko „PDF“ znovu sestaví uloženou kalkulaci v A4 a otevře dialog pro uložení PDF.
+  </div>
+</main>
+<div class="toast" id="toast">Hotovo</div>
+<script>
+"use strict";
+const DATABASE_STORAGE_KEY = "poznavaciZajezdyKalkulaceDatabaseV1";
+const rowsEl = document.getElementById("databaseRows");
+const emptyEl = document.getElementById("emptyState");
+const searchEl = document.getElementById("searchInput");
+let records = loadRecords();
+
+function loadRecords(){try{const x=JSON.parse(localStorage.getItem(DATABASE_STORAGE_KEY));return Array.isArray(x)?x:[]}catch(e){console.warn(e);return[]}}
+function saveRecords(){localStorage.setItem(DATABASE_STORAGE_KEY,JSON.stringify(records))}
+function encodePayload(payload){const bytes=new TextEncoder().encode(JSON.stringify(payload));let binary="";bytes.forEach(b=>binary+=String.fromCharCode(b));return btoa(binary).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/g,"")}
+function exportUrl(record,pdf=false){const url=new URL("index.html",window.location.href);if(pdf)url.searchParams.set("pdf","1");url.hash=`export=${encodePayload(record.payload)}`;return url.toString()}
+function formatDate(iso){if(!iso)return"–";const d=new Date(iso);return Number.isNaN(d.getTime())?"–":new Intl.DateTimeFormat("cs-CZ",{dateStyle:"medium",timeStyle:"short"}).format(d)}
+function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function tagClass(type){return type==="PDF"?"pdf":type==="uloženo"?"saved":""}
+function toast(msg){const el=document.getElementById("toast");el.textContent=msg;el.classList.add("show");setTimeout(()=>el.classList.remove("show"),1600)}
+async function copyText(text){try{await navigator.clipboard.writeText(text)}catch{const t=document.createElement("textarea");t.value=text;document.body.appendChild(t);t.select();document.execCommand("copy");t.remove()}toast("Odkaz zkopírován")}
+
+function render(){
+  const q=searchEl.value.trim().toLowerCase();
+  const filtered=records.filter(r=>!q||(r.tourName||"").toLowerCase().includes(q)||(r.id||"").toLowerCase().includes(q));
+  rowsEl.innerHTML=filtered.map(r=>`<tr data-id="${esc(r.id)}">
+    <td>${esc(formatDate(r.createdAt))}<span class="sub">${esc((r.id||"").slice(0,18))}</span></td>
+    <td><span class="tour-name">${esc(r.tourName||"Bez názvu")}</span></td>
+    <td><span class="tag ${tagClass(r.exportType)}">${esc(r.exportType||"export")}</span></td>
+    <td>${esc(r.summary?.costPerPerson||"–")}</td>
+    <td>${esc(r.summary?.finalSalePrice||r.summary?.optimalSalePrice||"–")}</td>
+    <td class="margin-positive">${esc(r.summary?.actualMarginPercent||"–")}</td>
+    <td><div class="actions">
+      <button class="button button-primary" data-action="open">Otevřít</button>
+      <button class="button button-secondary" data-action="pdf">PDF</button>
+      <button class="button button-secondary" data-action="copy">Kopírovat odkaz</button>
+      <button class="button button-danger" data-action="delete">Smazat</button>
+    </div></td>
+  </tr>`).join("");
+  emptyEl.style.display=filtered.length?"none":"block";
+  document.getElementById("recordCount").textContent=records.length;
+  document.getElementById("lastExport").textContent=records.length?formatDate(records[0].createdAt):"–";
+}
+
+rowsEl.addEventListener("click",e=>{const b=e.target.closest("button[data-action]");if(!b)return;const row=b.closest("tr");const record=records.find(r=>r.id===row?.dataset.id);if(!record)return;const a=b.dataset.action;if(a==="open")window.open(exportUrl(record),"_blank","noopener");if(a==="pdf")window.open(exportUrl(record,true),"_blank","noopener");if(a==="copy")copyText(exportUrl(record));if(a==="delete"){if(confirm(`Smazat kalkulaci „${record.tourName||"Bez názvu"}“?`)){records=records.filter(r=>r.id!==record.id);saveRecords();render()}}});
+searchEl.addEventListener("input",render);
+
+document.getElementById("clearDatabaseButton").addEventListener("click",()=>{if(!records.length)return;if(confirm("Opravdu vymazat celou databázi kalkulací?")){records=[];saveRecords();render()}});
+document.getElementById("downloadBackupButton").addEventListener("click",()=>{const blob=new Blob([JSON.stringify({version:1,exportedAt:new Date().toISOString(),records},null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=`databaze-kalkulaci-${new Date().toISOString().slice(0,10)}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),500)});
+document.getElementById("importFile").addEventListener("change",async e=>{const file=e.target.files?.[0];if(!file)return;try{const data=JSON.parse(await file.text());const incoming=Array.isArray(data)?data:Array.isArray(data.records)?data.records:null;if(!incoming)throw new Error("Neplatný formát");const map=new Map(records.map(r=>[r.id,r]));incoming.forEach(r=>{if(r&&r.id&&r.payload)map.set(r.id,r)});records=Array.from(map.values()).sort((a,b)=>String(b.createdAt||"").localeCompare(String(a.createdAt||"")));saveRecords();render();toast("Záloha načtena")}catch(err){alert("Soubor se nepodařilo načíst jako zálohu databáze.")}finally{e.target.value=""}});
+render();
+</script>
+</body>
+</html>
