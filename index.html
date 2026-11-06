@@ -660,6 +660,34 @@
       border: 0;
     }
 
+
+    .checkbox-field {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 42px;
+      padding: 10px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 9px;
+      background: #fff;
+    }
+
+    .checkbox-field input[type="checkbox"] {
+      width: 19px;
+      height: 19px;
+      min-height: 0;
+      margin: 0;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+
+    .checkbox-field label {
+      margin: 0;
+      cursor: pointer;
+      font-size: .9rem;
+      font-weight: 750;
+    }
+
     @media (max-width: 1050px) {
       .layout {
         grid-template-columns: 1fr;
@@ -1075,6 +1103,13 @@
                   <span class="unit">os.</span>
                 </div>
                 <span class="hint">Výchozí hodnota 45. Lze přepsat nebo měnit šipkami po 1 osobě.</span>
+              </div>
+
+              <div class="field field-wide">
+                <div class="checkbox-field">
+                  <input id="isGroupTour" type="checkbox">
+                  <label for="isGroupTour">Skupinový zájezd</label>
+                </div>
               </div>
             </div>
           </div>
@@ -1962,9 +1997,11 @@ function updatePriceStatus(finalSalePrice, costPerPerson, optimalSalePrice, actu
 
 function collectCalculationState() {
   const fields = {};
-  document.querySelectorAll("input[id], select[id], textarea[id]").forEach(control => fields[control.id] = control.value);
+  document.querySelectorAll("input[id], select[id], textarea[id]").forEach(control => {
+    fields[control.id] = control.type === "checkbox" ? control.checked : control.value;
+  });
   return {
-    version: 9,
+    version: 10,
     exportId: currentSavedPayload?.exportId || createUniqueId(),
     createdAt: currentSavedPayload?.createdAt || new Date().toISOString(),
     parameters: { ...parameters },
@@ -1980,7 +2017,12 @@ function restoreCalculationState(payload) {
   if (!payload?.fields) return;
   Object.entries(payload.fields).forEach(([id,value]) => {
     const control = element(id);
-    if (control) control.value = value;
+    if (!control) return;
+    if (control.type === "checkbox") {
+      control.checked = value === true || value === "true" || value === "on" || value === 1;
+    } else {
+      control.value = value;
+    }
   });
 
   // Zpětná kompatibilita se staršími uloženými kalkulacemi.
@@ -2023,6 +2065,8 @@ function saveCalculationToDatabase(payload, exportType="uloženo") {
     updatedAt: new Date().toISOString(),
     exportType,
     tourName: payload.fields?.tourName?.trim() || "Bez názvu",
+    guarantor: payload.fields?.tourGuarantor?.trim() || "",
+    isGroupTour: payload.fields?.isGroupTour === true || payload.fields?.isGroupTour === "true" || payload.fields?.isGroupTour === "on",
     summary: {
       totalCosts: formatMoney(lastCalculation.totalCosts),
       costPerPerson: formatMoney(lastCalculation.costPerPerson),
@@ -2139,15 +2183,26 @@ function leaveSavedCalculationForNew() {
 }
 
 function resetCalculation() {
-  const hasData = Array.from(document.querySelectorAll(".calculation-input, #tourName, #tourGuarantor"))
-    .some(el => (el.type === "number" ? Number(el.value) > 0 : String(el.value).trim() !== "" && !["40","45","EUR","0"].includes(String(el.value))));
+  const hasData = Array.from(document.querySelectorAll(".calculation-input, #tourName, #tourGuarantor, #isGroupTour"))
+    .some(el => {
+      if (el.type === "checkbox") return el.checked;
+      return el.type === "number"
+        ? Number(el.value) > 0
+        : String(el.value).trim() !== "" && !["40","45","EUR","0"].includes(String(el.value));
+    });
   if (hasData && !confirm("Opravdu chcete vymazat rozepsanou kalkulaci?")) return;
   leaveSavedCalculationForNew();
   document.querySelectorAll("input[id]").forEach(input => {
     if (input.readOnly) return;
-    if (["tourName","tourGuarantor"].includes(input.id)) input.value = "";
-    else if (input.id === "effectiveOccupancy") input.value = parameters.defaultOccupancy;
-    else input.value = "0";
+    if (input.type === "checkbox") {
+      input.checked = false;
+    } else if (["tourName","tourGuarantor"].includes(input.id)) {
+      input.value = "";
+    } else if (input.id === "effectiveOccupancy") {
+      input.value = parameters.defaultOccupancy;
+    } else {
+      input.value = "0";
+    }
   });
   document.querySelectorAll("select.currency-select").forEach(select => select.value = "EUR");
   element("kmRate").value = "40";
