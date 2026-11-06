@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Kalkulačka nákladů, prodejní ceny a marže poznávacího zájezdu">
+  <meta name="description" content="Kalkulačka nákladů a marže poznávacího zájezdu">
   <title>Kalkulace poznávacího zájezdu</title>
-
   <style>
     :root {
       --bg: #f3f5f8;
@@ -958,24 +957,81 @@
         page-break-inside: avoid;
       }
     }
-  </style>
-</head>
+  
 
+    .hero-actions .button-save {
+      background: #ecfdf3;
+      color: #067647;
+      border-color: rgba(255,255,255,.25);
+    }
+
+    .currency-pair {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 130px;
+      gap: 8px;
+      align-items: stretch;
+    }
+
+    .currency-pair .input-with-unit input {
+      padding-right: 54px;
+    }
+
+    .formula-box.formula-box-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .formula-box.formula-box-4 {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .subtle-kpi {
+      font-size: .78rem;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    .group-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .compact-select {
+      min-height: 42px;
+    }
+
+    @media (max-width: 900px) {
+      .formula-box.formula-box-4,
+      .group-summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 720px) {
+      .currency-pair,
+      .formula-box.formula-box-2,
+      .formula-box.formula-box-4,
+      .group-summary-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+</style>
+</head>
 <body>
   <main class="page">
     <header class="hero">
       <div>
         <h1>Kalkulace poznávacího zájezdu</h1>
         <p>
-          Zadejte náklady na dopravu, průvodce, ubytování, pojištění a vstupy.
-          Náklady na osobu, optimální prodejní cena, katalogová cena a marže se dopočítají automaticky.
+          Zadejte skutečné náklady zájezdu. Kalkulačka automaticky rozpočítá náklady
+          mezi platící účastníky, přepočítá měny a spočítá skutečnou marži.
         </p>
       </div>
 
       <div class="hero-actions">
-        <a class="button button-ghost" id="transportListLink" href="doprava.html">Seznam dopravy</a>
+        <button class="button button-save" type="button" id="saveDatabaseButton">Uložit do databáze</button>
         <a class="button button-ghost" id="databaseLink" href="databaze.html">Databáze kalkulací</a>
-        <button class="button button-ghost" type="button" id="copyExportLinkButton" hidden>Kopírovat odkaz</button>
         <button class="button button-ghost" type="button" id="printButton">Vytisknout</button>
         <button class="button button-light" type="button" id="resetButton">Nová kalkulace</button>
       </div>
@@ -989,10 +1045,9 @@
 
     <div class="parameter-strip" aria-live="polite">
       <strong>Aktivní parametry:</strong>
-      <span id="activeOccupancy">obsazenost 48,45 osoby</span>
-      <span id="activeExchangeRates">kurzy EUR 25 | GBP 29 | NOK/SEK 2,50 | PLN 6</span>
+      <span id="activeOccupancy">obsazenost 45 os.</span>
+      <span id="activeExchangeRates">kurzy měn</span>
       <span id="activeReserve">rezerva trasy 9 %</span>
-      <span id="activeMarkup">přirážky 45 %</span>
       <span class="spacer"></span>
       <button class="link-button" type="button" id="openParametersButton">Zobrazit parametry</button>
     </div>
@@ -1000,9 +1055,7 @@
     <div class="layout">
       <section class="stack">
         <article class="card">
-          <div class="card-header">
-            <h2>Základní údaje</h2>
-          </div>
+          <div class="card-header"><h2>Základní údaje</h2></div>
           <div class="card-body">
             <div class="grid grid-2">
               <div class="field field-wide">
@@ -1010,6 +1063,27 @@
                 <input id="tourName" type="text" autocomplete="off" placeholder="Např. Adventní Bamberk">
               </div>
 
+              <div class="field">
+                <label for="tourGuarantor">Garant zájezdu</label>
+                <input id="tourGuarantor" type="text" autocomplete="off" placeholder="Jméno garanta">
+              </div>
+
+              <div class="field">
+                <label for="effectiveOccupancy">Obsazenost autobusu</label>
+                <div class="input-with-unit">
+                  <input id="effectiveOccupancy" class="calculation-input" type="number" min="1" step="1" value="45">
+                  <span class="unit">os.</span>
+                </div>
+                <span class="hint">Výchozí hodnota 45. Lze přepsat nebo měnit šipkami po 1 osobě.</span>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="card accent-transport">
+          <div class="card-header"><h2>Doprava</h2></div>
+          <div class="card-body">
+            <div class="grid grid-2">
               <div class="field">
                 <label for="routeKm">Trasa</label>
                 <div class="input-with-unit">
@@ -1019,7 +1093,7 @@
               </div>
 
               <div class="field">
-                <label for="estimatedKm">Odhad celkem včetně rezervy</label>
+                <label for="estimatedKm">Odhad včetně rezervy</label>
                 <div class="input-with-unit">
                   <input id="estimatedKm" type="text" readonly>
                   <span class="unit">km</span>
@@ -1040,28 +1114,17 @@
               </div>
 
               <div class="field">
-                <label for="effectiveOccupancy">Obsazenost autobusu</label>
+                <label for="transportTax">Daň</label>
                 <div class="input-with-unit">
-                  <input id="effectiveOccupancy" class="calculation-input" type="number" min="0.01" step="0.01" value="48.45">
-                  <span class="unit">os.</span>
+                  <input id="transportTax" class="calculation-input" type="number" min="0" step="1" value="0">
+                  <span class="unit">Kč</span>
                 </div>
-                <span class="hint">Pole lze pro každou kalkulaci ručně změnit.</span>
               </div>
 
-            </div>
-          </div>
-        </article>
-
-        <article class="card accent-transport">
-          <div class="card-header">
-            <h2>Doprava</h2>
-          </div>
-          <div class="card-body">
-            <div class="grid grid-2">
               <div class="field">
-                <label for="taxParking">Daň + parkovné</label>
+                <label for="parking">Parkovné</label>
                 <div class="input-with-unit">
-                  <input id="taxParking" class="calculation-input" type="number" min="0" step="1" value="0">
+                  <input id="parking" class="calculation-input" type="number" min="0" step="1" value="0">
                   <span class="unit">Kč</span>
                 </div>
               </div>
@@ -1074,190 +1137,204 @@
                 </div>
               </div>
 
+              <div class="field">
+      <label for="driverAccommodation">Ubytování pro řidiče</label>
+      <div class="currency-pair">
+        <div class="input-with-unit">
+          <input id="driverAccommodation" class="calculation-input" type="number" min="0" step="0.01" value="0">
+          <span class="unit" id="driverAccommodationCurrencyUnit">EUR</span>
+        </div>
+        <select id="driverAccommodationCurrency" class="calculation-input currency-select" aria-label="Měna – Ubytování pro řidiče">
+<option value="CZK">CZK</option>
+<option value="EUR" selected>EUR</option>
+<option value="GBP">GBP</option>
+<option value="NOK">NOK</option>
+<option value="SEK">SEK</option>
+<option value="PLN">PLN</option>
+<option value="CHF">CHF</option></select>
+      </div>
+    </div>
             </div>
 
-            <div class="formula-box">
-              <div class="mini-result">
-                <span>Náklad dopravy celkem</span>
-                <strong id="transportTotal">0 Kč</strong>
-              </div>
-              <div class="mini-result">
-                <span>Náklad / osoba</span>
-                <strong id="transportCostPerPerson">0 Kč</strong>
-              </div>
-              <div class="mini-result">
-                <span>Prodejní složka / osoba</span>
-                <strong id="transportSalePerPerson">0 Kč</strong>
-              </div>
+            <div class="formula-box formula-box-2">
+              <div class="mini-result"><span>Náklad na dopravu celkem</span><strong id="transportTotal">0 Kč</strong></div>
+              <div class="mini-result"><span>Náklad / osoba</span><strong id="transportCostPerPerson">0 Kč</strong></div>
             </div>
           </div>
         </article>
 
         <article class="card accent-guide">
-          <div class="card-header">
-            <h2>Průvodci</h2>
-          </div>
+          <div class="card-header"><h2>Průvodce</h2></div>
           <div class="card-body">
             <div class="grid grid-2">
               <div class="field">
-                <label for="guideTotal">Náklad na průvodce celkem</label>
+                <label for="guideReward">Odměna průvodce</label>
                 <div class="input-with-unit">
-                  <input id="guideTotal" class="calculation-input" type="number" min="0" step="1" value="0">
+                  <input id="guideReward" class="calculation-input" type="number" min="0" step="1" value="0">
                   <span class="unit">Kč</span>
                 </div>
               </div>
 
               <div class="field">
-                <label for="guideSurcharge">Přirážka</label>
-                <div class="input-with-unit">
-                  <input id="guideSurcharge" class="calculation-input" type="number" min="0" step="1" value="0">
-                  <span class="unit">Kč</span>
-                </div>
-                <span class="hint">Další náklad za celý zájezd. Rozpočítá se mezi platící osoby a vstupuje do marže průvodce.</span>
-              </div>
+      <label for="guideAccommodation">Ubytování průvodce</label>
+      <div class="currency-pair">
+        <div class="input-with-unit">
+          <input id="guideAccommodation" class="calculation-input" type="number" min="0" step="0.01" value="0">
+          <span class="unit" id="guideAccommodationCurrencyUnit">EUR</span>
+        </div>
+        <select id="guideAccommodationCurrency" class="calculation-input currency-select" aria-label="Měna – Ubytování průvodce">
+<option value="CZK">CZK</option>
+<option value="EUR" selected>EUR</option>
+<option value="GBP">GBP</option>
+<option value="NOK">NOK</option>
+<option value="SEK">SEK</option>
+<option value="PLN">PLN</option>
+<option value="CHF">CHF</option></select>
+      </div>
+    </div>
+              <div class="field">
+      <label for="guideLocalTransport">Místní doprava</label>
+      <div class="currency-pair">
+        <div class="input-with-unit">
+          <input id="guideLocalTransport" class="calculation-input" type="number" min="0" step="0.01" value="0">
+          <span class="unit" id="guideLocalTransportCurrencyUnit">EUR</span>
+        </div>
+        <select id="guideLocalTransportCurrency" class="calculation-input currency-select" aria-label="Měna – Místní doprava">
+<option value="CZK">CZK</option>
+<option value="EUR" selected>EUR</option>
+<option value="GBP">GBP</option>
+<option value="NOK">NOK</option>
+<option value="SEK">SEK</option>
+<option value="PLN">PLN</option>
+<option value="CHF">CHF</option></select>
+      </div>
+    </div>
             </div>
 
-            <div class="formula-box">
-              <div class="mini-result">
-                <span>Náklad průvodce celkem</span>
-                <strong id="guideTotalOutput">0 Kč</strong>
-              </div>
-              <div class="mini-result">
-                <span>Náklad / osoba</span>
-                <strong id="guideCostPerPerson">0 Kč</strong>
-              </div>
-              <div class="mini-result">
-                <span>Prodejní složka / osoba</span>
-                <strong id="guideSalePerPerson">0 Kč</strong>
-              </div>
+            <div class="formula-box formula-box-2">
+              <div class="mini-result"><span>Náklad na průvodce celkem</span><strong id="guideTotalOutput">0 Kč</strong></div>
+              <div class="mini-result"><span>Náklad / osoba</span><strong id="guideCostPerPerson">0 Kč</strong></div>
             </div>
           </div>
         </article>
 
         <article class="card accent-accommodation">
-          <div class="card-header">
-            <h2>Ubytování</h2>
-          </div>
+          <div class="card-header"><h2>Ubytování</h2></div>
           <div class="card-body">
-            <p class="hint" style="margin: 0 0 14px;">
-              U každé noci zadejte cenu ubytování za jednu osobu a samostatně vyberte měnu.
-            </p>
-
+            <p class="hint" style="margin: 0 0 14px;">U každé noci zadejte reálný náklad na jednu osobu a zvolte měnu.</p>
             <div class="grid grid-2">
               <div class="field">
-                <label for="night1">1. noc</label>
-                <div class="night-controls">
-                  <div class="input-with-unit">
-                    <input id="night1" class="calculation-input" type="number" min="0" step="0.01" value="0">
-                    <span class="unit" id="night1CurrencyUnit">EUR</span>
-                  </div>
-                  <select id="night1Currency" class="calculation-input currency-select" aria-label="Měna 1. noci">
-                    <option value="CZK">CZK</option>
-                    <option value="EUR" selected>EUR</option>
-                    <option value="GBP">GBP</option>
-                    <option value="NOK">NOK</option>
-                    <option value="SEK">SEK</option>
-                    <option value="PLN">PLN</option>
-                  </select>
-                </div>
-              </div>
-
-              <div class="field">
-                <label for="night2">2. noc</label>
-                <div class="night-controls">
-                  <div class="input-with-unit">
-                    <input id="night2" class="calculation-input" type="number" min="0" step="0.01" value="0">
-                    <span class="unit" id="night2CurrencyUnit">EUR</span>
-                  </div>
-                  <select id="night2Currency" class="calculation-input currency-select" aria-label="Měna 2. noci">
-                    <option value="CZK">CZK</option>
-                    <option value="EUR" selected>EUR</option>
-                    <option value="GBP">GBP</option>
-                    <option value="NOK">NOK</option>
-                    <option value="SEK">SEK</option>
-                    <option value="PLN">PLN</option>
-                  </select>
-                </div>
-              </div>
-
-              <div class="field">
-                <label for="night3">3. noc</label>
-                <div class="night-controls">
-                  <div class="input-with-unit">
-                    <input id="night3" class="calculation-input" type="number" min="0" step="0.01" value="0">
-                    <span class="unit" id="night3CurrencyUnit">EUR</span>
-                  </div>
-                  <select id="night3Currency" class="calculation-input currency-select" aria-label="Měna 3. noci">
-                    <option value="CZK">CZK</option>
-                    <option value="EUR" selected>EUR</option>
-                    <option value="GBP">GBP</option>
-                    <option value="NOK">NOK</option>
-                    <option value="SEK">SEK</option>
-                    <option value="PLN">PLN</option>
-                  </select>
-                </div>
-              </div>
-
-              <div class="field">
-                <label for="night4">4. noc</label>
-                <div class="night-controls">
-                  <div class="input-with-unit">
-                    <input id="night4" class="calculation-input" type="number" min="0" step="0.01" value="0">
-                    <span class="unit" id="night4CurrencyUnit">EUR</span>
-                  </div>
-                  <select id="night4Currency" class="calculation-input currency-select" aria-label="Měna 4. noci">
-                    <option value="CZK">CZK</option>
-                    <option value="EUR" selected>EUR</option>
-                    <option value="GBP">GBP</option>
-                    <option value="NOK">NOK</option>
-                    <option value="SEK">SEK</option>
-                    <option value="PLN">PLN</option>
-                  </select>
-                </div>
-              </div>
-
-
-              <div class="field field-wide">
-                <label for="accommodationBuffer">Přirážka</label>
-                <div class="night-controls">
-                  <div class="input-with-unit">
-                    <input id="accommodationBuffer" class="calculation-input" type="number" min="0" step="0.01" value="0">
-                    <span class="unit" id="accommodationBufferCurrencyUnit">CZK</span>
-                  </div>
-                  <select id="accommodationBufferCurrency" class="calculation-input currency-select" aria-label="Měna přirážky">
-                    <option value="CZK" selected>CZK</option>
-                    <option value="EUR">EUR</option>
-                    <option value="GBP">GBP</option>
-                    <option value="NOK">NOK</option>
-                    <option value="SEK">SEK</option>
-                    <option value="PLN">PLN</option>
-                  </select>
-                </div>
-                <span class="hint">Celková přirážka za celý zájezd. Nejprve se přepočítá do Kč podle zvolené měny, poté se rozpočítá mezi platící osoby a započítá do marže jako běžný náklad.</span>
-              </div>
+      <label for="night1">1. noc</label>
+      <div class="currency-pair">
+        <div class="input-with-unit">
+          <input id="night1" class="calculation-input" type="number" min="0" step="0.01" value="0">
+          <span class="unit" id="night1CurrencyUnit">EUR</span>
+        </div>
+        <select id="night1Currency" class="calculation-input currency-select" aria-label="Měna – 1. noc">
+<option value="CZK">CZK</option>
+<option value="EUR" selected>EUR</option>
+<option value="GBP">GBP</option>
+<option value="NOK">NOK</option>
+<option value="SEK">SEK</option>
+<option value="PLN">PLN</option>
+<option value="CHF">CHF</option></select>
+      </div>
+    </div>
+<div class="field">
+      <label for="night2">2. noc</label>
+      <div class="currency-pair">
+        <div class="input-with-unit">
+          <input id="night2" class="calculation-input" type="number" min="0" step="0.01" value="0">
+          <span class="unit" id="night2CurrencyUnit">EUR</span>
+        </div>
+        <select id="night2Currency" class="calculation-input currency-select" aria-label="Měna – 2. noc">
+<option value="CZK">CZK</option>
+<option value="EUR" selected>EUR</option>
+<option value="GBP">GBP</option>
+<option value="NOK">NOK</option>
+<option value="SEK">SEK</option>
+<option value="PLN">PLN</option>
+<option value="CHF">CHF</option></select>
+      </div>
+    </div>
+<div class="field">
+      <label for="night3">3. noc</label>
+      <div class="currency-pair">
+        <div class="input-with-unit">
+          <input id="night3" class="calculation-input" type="number" min="0" step="0.01" value="0">
+          <span class="unit" id="night3CurrencyUnit">EUR</span>
+        </div>
+        <select id="night3Currency" class="calculation-input currency-select" aria-label="Měna – 3. noc">
+<option value="CZK">CZK</option>
+<option value="EUR" selected>EUR</option>
+<option value="GBP">GBP</option>
+<option value="NOK">NOK</option>
+<option value="SEK">SEK</option>
+<option value="PLN">PLN</option>
+<option value="CHF">CHF</option></select>
+      </div>
+    </div>
+<div class="field">
+      <label for="night4">4. noc</label>
+      <div class="currency-pair">
+        <div class="input-with-unit">
+          <input id="night4" class="calculation-input" type="number" min="0" step="0.01" value="0">
+          <span class="unit" id="night4CurrencyUnit">EUR</span>
+        </div>
+        <select id="night4Currency" class="calculation-input currency-select" aria-label="Měna – 4. noc">
+<option value="CZK">CZK</option>
+<option value="EUR" selected>EUR</option>
+<option value="GBP">GBP</option>
+<option value="NOK">NOK</option>
+<option value="SEK">SEK</option>
+<option value="PLN">PLN</option>
+<option value="CHF">CHF</option></select>
+      </div>
+    </div>
+<div class="field">
+      <label for="night5">5. noc</label>
+      <div class="currency-pair">
+        <div class="input-with-unit">
+          <input id="night5" class="calculation-input" type="number" min="0" step="0.01" value="0">
+          <span class="unit" id="night5CurrencyUnit">EUR</span>
+        </div>
+        <select id="night5Currency" class="calculation-input currency-select" aria-label="Měna – 5. noc">
+<option value="CZK">CZK</option>
+<option value="EUR" selected>EUR</option>
+<option value="GBP">GBP</option>
+<option value="NOK">NOK</option>
+<option value="SEK">SEK</option>
+<option value="PLN">PLN</option>
+<option value="CHF">CHF</option></select>
+      </div>
+    </div>
+<div class="field">
+      <label for="night6">6. noc</label>
+      <div class="currency-pair">
+        <div class="input-with-unit">
+          <input id="night6" class="calculation-input" type="number" min="0" step="0.01" value="0">
+          <span class="unit" id="night6CurrencyUnit">EUR</span>
+        </div>
+        <select id="night6Currency" class="calculation-input currency-select" aria-label="Měna – 6. noc">
+<option value="CZK">CZK</option>
+<option value="EUR" selected>EUR</option>
+<option value="GBP">GBP</option>
+<option value="NOK">NOK</option>
+<option value="SEK">SEK</option>
+<option value="PLN">PLN</option>
+<option value="CHF">CHF</option></select>
+      </div>
+    </div>
             </div>
 
             <div class="formula-box">
+              <div class="mini-result"><span>Náklad ubytování celkem</span><strong id="accommodationTotal">0 Kč</strong></div>
               <div class="mini-result">
-                <span>Reálný náklad nocí / osoba</span>
-                <strong id="accommodationRealPerPerson">0 Kč</strong>
+                <span>Náklad / platící osobu / noc</span>
+                <strong id="accommodationPerPayingPerNightCzk">0 Kč</strong>
+                <div class="subtle-kpi" id="accommodationPerPayingPerNightEur">0 EUR</div>
               </div>
-              <div class="mini-result">
-                <span>Přirážka celkem</span>
-                <strong id="accommodationBufferOutput">0 Kč</strong>
-              </div>
-              <div class="mini-result">
-                <span>Náklad ubytování celkem</span>
-                <strong id="accommodationTotal">0 Kč</strong>
-              </div>
-              <div class="mini-result">
-                <span>Náklad / platící osoba</span>
-                <strong id="accommodationCostPerPerson">0 Kč</strong>
-              </div>
-              <div class="mini-result">
-                <span>Prodejní složka / osoba</span>
-                <strong id="accommodationSalePerPerson">0 Kč</strong>
-              </div>
+              <div class="mini-result"><span>Počet započtených nocí</span><strong id="accommodationNightCount">0</strong></div>
             </div>
           </div>
         </article>
@@ -1267,12 +1344,10 @@
             <h2>Skupinové zájezdy</h2>
             <span class="details-chevron" aria-hidden="true">⌄</span>
           </summary>
-
           <div class="card-body">
             <section class="group-section group-section-insurance">
               <h3>Pojištění</h3>
-              <p class="hint">Pojištění platících i neplatících osob se počítá bez marže a bez jiné přirážky.</p>
-
+              <p class="hint">Pojištění se počítá bez marže a je vyloučeno z procentního výpočtu marže.</p>
               <div class="grid grid-2">
                 <div class="field">
                   <label for="tourDays">Počet dní zájezdu</label>
@@ -1281,7 +1356,6 @@
                     <span class="unit">dní</span>
                   </div>
                 </div>
-
                 <div class="field">
                   <label for="insuranceDailyRateDisplay">Sazba pojištění</label>
                   <div class="input-with-unit">
@@ -1290,91 +1364,60 @@
                   </div>
                 </div>
               </div>
-
-              <div class="formula-box">
-                <div class="mini-result">
-                  <span>Pojištění / platící osoba</span>
-                  <strong id="insuranceCostPerPerson">0 Kč</strong>
-                </div>
-                <div class="mini-result">
-                  <span>Pojištění celkem</span>
-                  <strong id="insuranceTotal">0 Kč</strong>
-                </div>
-                <div class="mini-result">
-                  <span>Prodejní složka / osoba</span>
-                  <strong id="insuranceSalePerPerson">0 Kč</strong>
-                </div>
+              <div class="formula-box formula-box-2">
+                <div class="mini-result"><span>Pojištění / platící osoba</span><strong id="insuranceCostPerPerson">0 Kč</strong></div>
+                <div class="mini-result"><span>Pojištění celkem</span><strong id="insuranceTotal">0 Kč</strong></div>
               </div>
             </section>
 
             <section class="group-section group-section-entries">
               <h3>Vstupy</h3>
-              <p class="hint">Zadejte cenu jednotlivého vstupu za jednu osobu a vyberte jeho měnu.</p>
-
+              <p class="hint">Ceny jsou za jednu platící osobu. Vstupy se počítají bez marže.</p>
               <div class="grid grid-2">
                 <div class="field">
-                  <label for="entry1Price">Cena 1. vstupu / osoba</label>
-                  <div class="input-with-unit">
-                    <input id="entry1Price" class="calculation-input" type="number" min="0" step="0.01" value="0">
-                    <span class="unit" id="entry1CurrencyUnit">EUR</span>
-                  </div>
-                </div>
-
+      <label for="entry1Price">Cena 1. vstupu / osoba</label>
+      <div class="currency-pair">
+        <div class="input-with-unit">
+          <input id="entry1Price" class="calculation-input" type="number" min="0" step="0.01" value="0">
+          <span class="unit" id="entry1PriceCurrencyUnit">EUR</span>
+        </div>
+        <select id="entry1PriceCurrency" class="calculation-input currency-select" aria-label="Měna – Cena 1. vstupu / osoba">
+<option value="CZK">CZK</option>
+<option value="EUR" selected>EUR</option>
+<option value="GBP">GBP</option>
+<option value="NOK">NOK</option>
+<option value="SEK">SEK</option>
+<option value="PLN">PLN</option>
+<option value="CHF">CHF</option></select>
+      </div>
+    </div>
                 <div class="field">
-                  <label for="entry1Currency">Měna 1. vstupu</label>
-                  <select id="entry1Currency" class="calculation-input currency-select">
-                    <option value="CZK">CZK – česká koruna</option>
-                    <option value="EUR" selected>EUR – euro</option>
-                    <option value="GBP">GBP – britská libra</option>
-                    <option value="NOK">NOK – norská koruna</option>
-                    <option value="SEK">SEK – švédská koruna</option>
-                    <option value="PLN">PLN – polský zlotý</option>
-                  </select>
-                </div>
-
-                <div class="field">
-                  <label for="entry2Price">Cena 2. vstupu / osoba</label>
-                  <div class="input-with-unit">
-                    <input id="entry2Price" class="calculation-input" type="number" min="0" step="0.01" value="0">
-                    <span class="unit" id="entry2CurrencyUnit">EUR</span>
-                  </div>
-                </div>
-
-                <div class="field">
-                  <label for="entry2Currency">Měna 2. vstupu</label>
-                  <select id="entry2Currency" class="calculation-input currency-select">
-                    <option value="CZK">CZK – česká koruna</option>
-                    <option value="EUR" selected>EUR – euro</option>
-                    <option value="GBP">GBP – britská libra</option>
-                    <option value="NOK">NOK – norská koruna</option>
-                    <option value="SEK">SEK – švédská koruna</option>
-                    <option value="PLN">PLN – polský zlotý</option>
-                  </select>
-                </div>
+      <label for="entry2Price">Cena 2. vstupu / osoba</label>
+      <div class="currency-pair">
+        <div class="input-with-unit">
+          <input id="entry2Price" class="calculation-input" type="number" min="0" step="0.01" value="0">
+          <span class="unit" id="entry2PriceCurrencyUnit">EUR</span>
+        </div>
+        <select id="entry2PriceCurrency" class="calculation-input currency-select" aria-label="Měna – Cena 2. vstupu / osoba">
+<option value="CZK">CZK</option>
+<option value="EUR" selected>EUR</option>
+<option value="GBP">GBP</option>
+<option value="NOK">NOK</option>
+<option value="SEK">SEK</option>
+<option value="PLN">PLN</option>
+<option value="CHF">CHF</option></select>
+      </div>
+    </div>
               </div>
-
-              <div class="formula-box">
-                <div class="mini-result">
-                  <span>Náklad vstupů / osoba</span>
-                  <strong id="entriesCostPerPerson">0 Kč</strong>
-                </div>
-                <div class="mini-result">
-                  <span>Náklad vstupů celkem</span>
-                  <strong id="entriesTotal">0 Kč</strong>
-                </div>
-                <div class="mini-result">
-                  <span>Prodejní složka / osoba</span>
-                  <strong id="entriesSalePerPerson">0 Kč</strong>
-                </div>
+              <div class="formula-box formula-box-2">
+                <div class="mini-result"><span>Vstupy / platící osoba</span><strong id="entriesCostPerPerson">0 Kč</strong></div>
+                <div class="mini-result"><span>Vstupy celkem</span><strong id="entriesTotal">0 Kč</strong></div>
               </div>
-
-              <p class="note">Vstupy se do prodejní ceny přičítají bez marže a bez jiné přirážky.</p>
             </section>
 
-            <section class="group-section group-section-unpaid">
+            <section class="group-section">
               <h3>Náklady za neplatící osoby</h3>
-              <p class="hint">Pojištění, ubytování a vstupy neplatících osob se rozpočítají mezi ručně zadanou obsazenost autobusu.</p>
-
+              <p class="hint">Tyto náklady hradí platící účastníci. Ubytování a pojištění se dopočítávají automaticky.</p>
               <div class="grid grid-2">
                 <div class="field">
                   <label for="unpaidPersons">Počet neplatících osob</label>
@@ -1390,16 +1433,6 @@
                     <input id="groupInsuranceTotalDisplay" type="text" readonly>
                     <span class="unit">Kč</span>
                   </div>
-                  <span class="hint">Počet dní × 62 Kč × počet neplatících osob.</span>
-                </div>
-
-                <div class="field">
-                  <label for="groupAccommodationPerPersonDisplay">Ubytování / neplatící osoba</label>
-                  <div class="input-with-unit">
-                    <input id="groupAccommodationPerPersonDisplay" type="text" readonly>
-                    <span class="unit">Kč</span>
-                  </div>
-                  <span class="hint">Automaticky převzato z reálných nákladů nocí; přirážka se sem nezapočítává.</span>
                 </div>
 
                 <div class="field">
@@ -1408,50 +1441,65 @@
                     <input id="groupAccommodationTotalDisplay" type="text" readonly>
                     <span class="unit">Kč</span>
                   </div>
-                  <span class="hint">Ubytování za osobu × počet neplatících osob.</span>
                 </div>
 
                 <div class="field">
-                  <label for="unpaidEntriesPerPerson">Vstupy / neplatící osoba</label>
-                  <div class="input-with-unit">
-                    <input id="unpaidEntriesPerPerson" class="calculation-input" type="number" min="0" step="0.01" value="0">
-                    <span class="unit">Kč</span>
-                  </div>
-                  <span class="hint">Zadejte cenu vstupů, které za jednu neplatící osobu hradí skupina.</span>
-                </div>
+      <label for="unpaidEntry1Price">1. vstup / neplatící osoba</label>
+      <div class="currency-pair">
+        <div class="input-with-unit">
+          <input id="unpaidEntry1Price" class="calculation-input" type="number" min="0" step="0.01" value="0">
+          <span class="unit" id="unpaidEntry1PriceCurrencyUnit">EUR</span>
+        </div>
+        <select id="unpaidEntry1PriceCurrency" class="calculation-input currency-select" aria-label="Měna – 1. vstup / neplatící osoba">
+<option value="CZK">CZK</option>
+<option value="EUR" selected>EUR</option>
+<option value="GBP">GBP</option>
+<option value="NOK">NOK</option>
+<option value="SEK">SEK</option>
+<option value="PLN">PLN</option>
+<option value="CHF">CHF</option></select>
+      </div>
+    </div>
+                <div class="field">
+      <label for="unpaidEntry2Price">2. vstup / neplatící osoba</label>
+      <div class="currency-pair">
+        <div class="input-with-unit">
+          <input id="unpaidEntry2Price" class="calculation-input" type="number" min="0" step="0.01" value="0">
+          <span class="unit" id="unpaidEntry2PriceCurrencyUnit">EUR</span>
+        </div>
+        <select id="unpaidEntry2PriceCurrency" class="calculation-input currency-select" aria-label="Měna – 2. vstup / neplatící osoba">
+<option value="CZK">CZK</option>
+<option value="EUR" selected>EUR</option>
+<option value="GBP">GBP</option>
+<option value="NOK">NOK</option>
+<option value="SEK">SEK</option>
+<option value="PLN">PLN</option>
+<option value="CHF">CHF</option></select>
+      </div>
+    </div>
 
                 <div class="field">
-                  <label for="groupEntriesTotalDisplay">Vstupy neplatících osob</label>
-                  <div class="input-with-unit">
-                    <input id="groupEntriesTotalDisplay" type="text" readonly>
-                    <span class="unit">Kč</span>
-                  </div>
-                  <span class="hint">Vstupy za jednu neplatící osobu × počet neplatících osob.</span>
+                  <label for="organizerRewardRate">Odměna organizátorovi</label>
+                  <select id="organizerRewardRate" class="calculation-input compact-select">
+                    <option value="0" selected>Bez odměny</option>
+                    <option value="100">100 Kč / platící osoba</option>
+                    <option value="200">200 Kč / platící osoba</option>
+                  </select>
+                  <span class="hint">Sazba se násobí počtem platících účastníků a zahrne se do nákladů zájezdu.</span>
                 </div>
               </div>
 
-              <div class="formula-box">
-                <div class="mini-result">
-                  <span>Pojištění neplatících osob</span>
-                  <strong id="groupInsuranceTotal">0 Kč</strong>
-                </div>
-                <div class="mini-result">
-                  <span>Ubytování neplatících osob</span>
-                  <strong id="groupAccommodationTotal">0 Kč</strong>
-                </div>
-                <div class="mini-result">
-                  <span>Vstupy neplatících osob</span>
-                  <strong id="groupEntriesTotal">0 Kč</strong>
-                </div>
-                <div class="mini-result">
-                  <span>Navýšení nákladu / platící osoba</span>
-                  <strong id="groupSharePerPayingPerson">0 Kč</strong>
-                </div>
+              <div class="group-summary-grid">
+                <div class="mini-result"><span>Pojištění neplatících</span><strong id="groupInsuranceTotal">0 Kč</strong></div>
+                <div class="mini-result"><span>Ubytování neplatících</span><strong id="groupAccommodationTotal">0 Kč</strong></div>
+                <div class="mini-result"><span>Vstupy neplatících</span><strong id="groupEntriesTotal">0 Kč</strong></div>
+                <div class="mini-result"><span>Odměna organizátorovi</span><strong id="organizerRewardTotal">0 Kč</strong></div>
               </div>
 
-              <p class="note">
-                Ubytování neplatících osob je zahrnuto do ubytovací složky kalkulace. Pojištění a vstupy neplatících osob se rozpočítávají mezi platící osoby bez marže.
-              </p>
+              <div class="formula-box formula-box-2">
+                <div class="mini-result"><span>Náklady neplatících / platící osoba</span><strong id="groupSharePerPayingPerson">0 Kč</strong></div>
+                <div class="mini-result"><span>Odměna organizátorovi / osoba</span><strong id="organizerRewardPerPayingPerson">0 Kč</strong></div>
+              </div>
             </section>
           </div>
         </details>
@@ -1459,32 +1507,16 @@
 
       <aside class="stack results-column">
         <article class="card">
-          <div class="card-header">
-            <h2>Výsledek kalkulace</h2>
-          </div>
+          <div class="card-header"><h2>Výsledek kalkulace</h2></div>
           <div class="card-body">
             <div class="result-hero">
-              <span>Optimální prodejní cena za osobu</span>
+              <span>Návrh optimální prodejní ceny za osobu</span>
               <strong id="optimalSalePrice">0 Kč</strong>
             </div>
 
             <div class="result-grid">
-              <div class="result-item">
-                <span>Celkové náklady zájezdu</span>
-                <strong id="totalCosts">0 Kč</strong>
-              </div>
-              <div class="result-item highlight">
-                <span>Náklad na osobu</span>
-                <strong id="costPerPerson">0 Kč</strong>
-              </div>
-              <div class="result-item">
-                <span>Optimální marže</span>
-                <strong id="optimalMarginNominal">0 Kč</strong>
-              </div>
-              <div class="result-item">
-                <span>Optimální marže v %</span><small class="margin-note">bez pojištění a vstupů</small>
-                <strong id="optimalMarginPercent">0 %</strong>
-              </div>
+              <div class="result-item"><span>Celkové náklady zájezdu</span><strong id="totalCosts">0 Kč</strong></div>
+              <div class="result-item highlight"><span>Náklad na osobu</span><strong id="costPerPerson">0 Kč</strong></div>
             </div>
 
             <div class="price-panel">
@@ -1494,31 +1526,19 @@
                   <input id="finalSalePrice" class="calculation-input" type="number" min="0" step="1" value="0">
                   <span class="unit">Kč</span>
                 </div>
-                <span class="hint">Toto pole se zadává ručně stejně jako ve zdrojové tabulce.</span>
               </div>
 
               <div class="result-grid">
+                <div class="result-item highlight"><span>Návrh katalogové ceny</span><strong id="catalogPriceProposal">0 Kč</strong></div>
+                <div class="result-item"><span>Skutečná marže</span><strong id="actualMarginNominal">0 Kč</strong></div>
                 <div class="result-item">
-                  <span>Dopočítaná katalogová cena</span>
-                  <strong id="calculatedCatalogPrice">0 Kč</strong>
-                </div>
-                <div class="result-item highlight">
-                  <span>Návrh katalogové ceny</span>
-                  <strong id="catalogPriceProposal">0 Kč</strong>
-                </div>
-                <div class="result-item">
-                  <span>Skutečná marže</span>
-                  <strong id="actualMarginNominal">0 Kč</strong>
-                </div>
-                <div class="result-item">
-                  <span>Skutečná marže v %</span><small class="margin-note">bez pojištění a vstupů</small>
+                  <span>Skutečná marže v %</span>
+                  <small class="margin-note">bez pojištění a vstupů</small>
                   <strong id="actualMarginPercent">0 %</strong>
                 </div>
               </div>
 
-              <div id="priceStatus" class="status status-neutral">
-                Zadejte prodejní cenu, aby bylo možné vyhodnotit marži.
-              </div>
+              <div id="priceStatus" class="status status-neutral">Zadejte prodejní cenu, aby bylo možné vyhodnotit marži.</div>
             </div>
           </div>
         </article>
@@ -1529,1112 +1549,664 @@
             <span id="parameterLockLabel">Uzamčeno</span>
             <span class="details-chevron" aria-hidden="true">⌄</span>
           </summary>
-
           <div class="card-body">
             <div class="grid grid-2">
               <div class="field">
-                <label for="paramBusMarkup">Přirážka – autobus</label>
-                <div class="input-with-unit">
-                  <input id="paramBusMarkup" class="parameter-input" type="number" min="0" step="0.1">
-                  <span class="unit">%</span>
-                </div>
-              </div>
-
-              <div class="field">
-                <label for="paramGuideMarkup">Přirážka – průvodce</label>
-                <div class="input-with-unit">
-                  <input id="paramGuideMarkup" class="parameter-input" type="number" min="0" step="0.1">
-                  <span class="unit">%</span>
-                </div>
-              </div>
-
-              <div class="field">
-                <label for="paramAccommodationMarkup">Přirážka – ubytování</label>
-                <div class="input-with-unit">
-                  <input id="paramAccommodationMarkup" class="parameter-input" type="number" min="0" step="0.1">
-                  <span class="unit">%</span>
-                </div>
-              </div>
-
-              <div class="field">
                 <label for="paramRouteReserve">Rezerva kilometrů</label>
-                <div class="input-with-unit">
-                  <input id="paramRouteReserve" class="parameter-input" type="number" min="0" step="0.1">
-                  <span class="unit">%</span>
-                </div>
+                <div class="input-with-unit"><input id="paramRouteReserve" class="parameter-input" type="number" min="0" step="0.1"><span class="unit">%</span></div>
               </div>
-
               <div class="field">
                 <label for="paramDefaultOccupancy">Výchozí obsazenost autobusu</label>
-                <div class="input-with-unit">
-                  <input id="paramDefaultOccupancy" class="parameter-input" type="number" min="0.01" step="0.01">
-                  <span class="unit">os.</span>
-                </div>
+                <div class="input-with-unit"><input id="paramDefaultOccupancy" class="parameter-input" type="number" min="1" step="1"><span class="unit">os.</span></div>
               </div>
-
               <div class="field">
                 <label for="paramInsuranceDailyRate">Pojištění za osobu a den</label>
-                <div class="input-with-unit">
-                  <input id="paramInsuranceDailyRate" class="parameter-input" type="number" min="0" step="0.01">
-                  <span class="unit">Kč</span>
-                </div>
+                <div class="input-with-unit"><input id="paramInsuranceDailyRate" class="parameter-input" type="number" min="0" step="0.01"><span class="unit">Kč</span></div>
               </div>
-
               <div class="field">
                 <label for="paramEuroRate">Kurz EUR</label>
-                <div class="input-with-unit">
-                  <input id="paramEuroRate" class="parameter-input" type="number" min="0.01" step="0.01">
-                  <span class="unit">Kč</span>
-                </div>
+                <div class="input-with-unit"><input id="paramEuroRate" class="parameter-input" type="number" min="0.01" step="0.01"><span class="unit">Kč</span></div>
               </div>
-
               <div class="field">
                 <label for="paramGbpRate">Kurz GBP</label>
-                <div class="input-with-unit">
-                  <input id="paramGbpRate" class="parameter-input" type="number" min="0.01" step="0.01">
-                  <span class="unit">Kč</span>
-                </div>
+                <div class="input-with-unit"><input id="paramGbpRate" class="parameter-input" type="number" min="0.01" step="0.01"><span class="unit">Kč</span></div>
               </div>
-
               <div class="field">
                 <label for="paramNokRate">Kurz NOK</label>
-                <div class="input-with-unit">
-                  <input id="paramNokRate" class="parameter-input" type="number" min="0.01" step="0.01">
-                  <span class="unit">Kč</span>
-                </div>
+                <div class="input-with-unit"><input id="paramNokRate" class="parameter-input" type="number" min="0.01" step="0.01"><span class="unit">Kč</span></div>
               </div>
-
               <div class="field">
                 <label for="paramSekRate">Kurz SEK</label>
-                <div class="input-with-unit">
-                  <input id="paramSekRate" class="parameter-input" type="number" min="0.01" step="0.01">
-                  <span class="unit">Kč</span>
-                </div>
+                <div class="input-with-unit"><input id="paramSekRate" class="parameter-input" type="number" min="0.01" step="0.01"><span class="unit">Kč</span></div>
               </div>
-
               <div class="field">
                 <label for="paramPlnRate">Kurz PLN</label>
-                <div class="input-with-unit">
-                  <input id="paramPlnRate" class="parameter-input" type="number" min="0.01" step="0.01">
-                  <span class="unit">Kč</span>
-                </div>
+                <div class="input-with-unit"><input id="paramPlnRate" class="parameter-input" type="number" min="0.01" step="0.01"><span class="unit">Kč</span></div>
               </div>
-
+              <div class="field">
+                <label for="paramChfRate">Kurz CHF</label>
+                <div class="input-with-unit"><input id="paramChfRate" class="parameter-input" type="number" min="0.01" step="0.01"><span class="unit">Kč</span></div>
+              </div>
               <div class="field">
                 <label for="paramBaseDiscount">Základní katalogová sleva</label>
-                <div class="input-with-unit">
-                  <input id="paramBaseDiscount" class="parameter-input" type="number" min="0" max="99" step="0.1">
-                  <span class="unit">%</span>
-                </div>
+                <div class="input-with-unit"><input id="paramBaseDiscount" class="parameter-input" type="number" min="0" max="99" step="0.1"><span class="unit">%</span></div>
               </div>
             </div>
 
             <div class="parameter-actions">
-              <button class="button button-primary" type="button" id="saveParametersButton">
-                Uložit a uzamknout
-              </button>
-              <button class="button button-secondary" type="button" id="editParametersButton">
-                Upravit parametry
-              </button>
-              <button class="button button-secondary" type="button" id="restoreParametersButton">
-                Obnovit výchozí hodnoty
-              </button>
+              <button class="button button-primary" type="button" id="saveParametersButton">Uložit a uzamknout</button>
+              <button class="button button-secondary" type="button" id="editParametersButton">Upravit parametry</button>
+              <button class="button button-secondary" type="button" id="restoreParametersButton">Obnovit výchozí hodnoty</button>
             </div>
-
-            <p class="note">
-              Parametry se ukládají pouze do tohoto internetového prohlížeče.
-              Po uložení zůstávají uzamčené. Obsazenost autobusu lze i nadále ručně měnit přímo v každé kalkulaci.
-            </p>
+            <p class="note">Parametry se ukládají pouze do tohoto prohlížeče. Obsazenost autobusu lze v každé kalkulaci měnit samostatně.</p>
           </div>
         </details>
 
         <div class="export-section" id="exportSection">
-          <p>Export kalkulace lze uložit jako unikátní odkaz nebo jako tisknutelné PDF ve formátu A4.</p>
+          <p>Kalkulaci lze otevřít jako statický odkaz nebo vyexportovat do tisknutelného PDF A4.</p>
           <div class="export-actions">
-            <button class="button button-primary" type="button" id="exportButton">
-              Exportovat odkaz
-            </button>
-            <button class="button button-secondary" type="button" id="pdfExportButton">
-              Export do PDF
-            </button>
-            <button class="button button-secondary" type="button" id="saveDatabaseButton">
-              Uložit do databáze
-            </button>
-            <a class="button button-secondary" href="databaze.html">
-              Otevřít databázi
-            </a>
+            <button class="button button-primary" type="button" id="exportButton">Exportovat odkaz</button>
+            <button class="button button-secondary" type="button" id="pdfExportButton">Export do PDF</button>
+            <a class="button button-secondary" href="databaze.html">Otevřít databázi</a>
           </div>
         </div>
 
         <details class="calculation-notes">
           <summary>Jak jsou výpočty sestavené</summary>
           <ul>
-            <li>Odhad kilometrů = trasa × (1 + rezerva kilometrů)</li>
-            <li>Doprava = odhad km × sazba Kč/km + daň, parkovné a trajekt</li>
-            <li>Náklad na osobu = celkový náklad ÷ ručně zadaná obsazenost autobusu</li>
-            <li>Ubytování = součet jednotlivých nocí převedených jejich vlastními měnovými kurzy + celková přirážka převedená podle zvolené měny.</li>
-            <li>Pojištění = počet dní × 62 Kč za osobu a den; bez marže a zcela mimo základ pro výpočet procentní marže</li>
-            <li>Vstupy = ceny vstupů × kurzy zvolených měn; bez marže a zcela mimo základ pro výpočet procentní marže</li>
-            <li>Ubytování, pojištění a vstupy neplatících osob se rozdělí mezi zadanou obsazenost autobusu</li>
-            <li>Optimální cena = prodejní složky dopravy, průvodce a ubytování + pojištění a vstupy bez přirážky</li>
-            <li>Katalogová cena = skutečná prodejní cena ÷ (1 − základní sleva)</li>
-            <li>Návrh katalogové ceny je zaokrouhlen na cenu končící číslicí 9</li>
+            <li>Doprava = trasa + 9% rezerva × sazba autobusu + daň + parkovné + trajekt + ubytování řidiče.</li>
+            <li>Průvodce = odměna + ubytování + místní doprava.</li>
+            <li>Ubytování = součet zadaných nocí × platící i neplatící osoby; průměr na platící osobu a noc se zobrazuje v Kč i EUR.</li>
+            <li>Pojištění = počet dní × sazba za osobu a den pro platící i neplatící osoby.</li>
+            <li>Vstupy platících i neplatících osob se přepočítávají z jejich zvolených měn.</li>
+            <li>Pojištění a vstupy jsou průběžné náklady bez marže a jsou vyloučené z procentního výpočtu marže.</li>
+            <li>Návrh optimální prodejní ceny = maržové náklady × 1,45 + pojištění a vstupy bez navýšení.</li>
+            <li>Odměna organizátorovi je zvolená sazba za platící osobu a vstupuje do běžných nákladů.</li>
+            <li>Návrh katalogové ceny = prodejní cena ÷ (1 − katalogová sleva), zaokrouhlená na cenu končící číslicí 9.</li>
           </ul>
         </details>
       </aside>
     </div>
   </main>
 
-  <script>
-    "use strict";
+<script>
+"use strict";
 
-    const STORAGE_KEY = "poznavaciZajezdyKalkulaceParametryV2";
-    const DATABASE_STORAGE_KEY = "poznavaciZajezdyKalkulaceDatabaseV1";
+const STORAGE_KEY = "poznavaciZajezdyKalkulaceParametryV3";
+const LEGACY_STORAGE_KEY = "poznavaciZajezdyKalkulaceParametryV2";
+const DATABASE_STORAGE_KEY = "poznavaciZajezdyKalkulaceDatabaseV1";
 
-    const DEFAULT_PARAMETERS = Object.freeze({
-      busMarkup: 45,
-      guideMarkup: 45,
-      accommodationMarkup: 45,
-      routeReserve: 9,
-      defaultOccupancy: 48.45,
-      insuranceDailyRate: 62,
-      euroRate: 25,
-      gbpRate: 29,
-      nokRate: 2.5,
-      sekRate: 2.5,
-      plnRate: 6,
-      baseDiscount: 35
-    });
+const DEFAULT_PARAMETERS = Object.freeze({
+  routeReserve: 9,
+  defaultOccupancy: 45,
+  insuranceDailyRate: 62,
+  euroRate: 25,
+  gbpRate: 29,
+  nokRate: 2.5,
+  sekRate: 2.5,
+  plnRate: 6,
+  chfRate: 27,
+  baseDiscount: 35
+});
 
-    const parameterIds = {
-      busMarkup: "paramBusMarkup",
-      guideMarkup: "paramGuideMarkup",
-      accommodationMarkup: "paramAccommodationMarkup",
-      routeReserve: "paramRouteReserve",
-      defaultOccupancy: "paramDefaultOccupancy",
-      insuranceDailyRate: "paramInsuranceDailyRate",
-      euroRate: "paramEuroRate",
-      gbpRate: "paramGbpRate",
-      nokRate: "paramNokRate",
-      sekRate: "paramSekRate",
-      plnRate: "paramPlnRate",
-      baseDiscount: "paramBaseDiscount"
-    };
+const parameterIds = {
+  routeReserve: "paramRouteReserve",
+  defaultOccupancy: "paramDefaultOccupancy",
+  insuranceDailyRate: "paramInsuranceDailyRate",
+  euroRate: "paramEuroRate",
+  gbpRate: "paramGbpRate",
+  nokRate: "paramNokRate",
+  sekRate: "paramSekRate",
+  plnRate: "paramPlnRate",
+  chfRate: "paramChfRate",
+  baseDiscount: "paramBaseDiscount"
+};
 
-    const exportPayload = readExportPayloadFromHash();
-    const isExportView = Boolean(exportPayload);
-    const transportPrefill = isExportView ? null : readTransportPrefillFromQuery();
-    const autoPrintExport = isExportView && new URLSearchParams(window.location.search).get("pdf") === "1";
+let parameters = loadParameters();
+let parametersLocked = true;
+let currentSavedPayload = readExportPayloadFromHash();
+let editingSavedCalculation = false;
+let pdfExportState = null;
+let lastCalculation = {};
 
-    // Pokud je kalkulace otevřená z databáze/exportu, uchováme její identitu,
-    // aby se po úpravě přepsal původní záznam místo vytvoření duplikátu.
-    let currentSavedPayload = exportPayload || null;
-    let editingSavedCalculation = false;
+const moneyFormatter = new Intl.NumberFormat("cs-CZ", {
+  style: "currency", currency: "CZK", minimumFractionDigits: 0, maximumFractionDigits: 0
+});
+const eurFormatter = new Intl.NumberFormat("cs-CZ", {
+  style: "currency", currency: "EUR", minimumFractionDigits: 2, maximumFractionDigits: 2
+});
+const numberFormatter = new Intl.NumberFormat("cs-CZ", {
+  minimumFractionDigits: 0, maximumFractionDigits: 2
+});
+const percentFormatter = new Intl.NumberFormat("cs-CZ", {
+  style: "percent", minimumFractionDigits: 1, maximumFractionDigits: 1
+});
 
-    let parameters = exportPayload && exportPayload.parameters
-      ? { ...DEFAULT_PARAMETERS, ...exportPayload.parameters }
-      : loadParameters();
-    let parametersLocked = true;
+function element(id) { return document.getElementById(id); }
+function getNumber(id) {
+  const control = element(id);
+  if (!control) return 0;
+  const value = Number(String(control.value ?? "").replace(",", "."));
+  return Number.isFinite(value) ? Math.max(0, value) : 0;
+}
+function safeDivide(a, b) { return b > 0 ? a / b : 0; }
+function formatMoney(v) { return moneyFormatter.format(Number.isFinite(v) ? v : 0); }
+function formatEur(v) { return eurFormatter.format(Number.isFinite(v) ? v : 0); }
+function formatNumber(v) { return numberFormatter.format(Number.isFinite(v) ? v : 0); }
+function formatPercent(v) { return percentFormatter.format(Number.isFinite(v) ? v : 0); }
+function setText(id, value) { const el = element(id); if (el) el.textContent = value; }
+function setValue(id, value) { const el = element(id); if (el) el.value = value; }
 
-    const moneyFormatter = new Intl.NumberFormat("cs-CZ", {
-      style: "currency",
-      currency: "CZK",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    });
+function createUniqueId() {
+  if (window.crypto && typeof window.crypto.randomUUID === "function") return window.crypto.randomUUID();
+  return `calc-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,10)}`;
+}
 
-    const numberFormatter = new Intl.NumberFormat("cs-CZ", {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2
-    });
+function encodeExportPayload(payload) {
+  const bytes = new TextEncoder().encode(JSON.stringify(payload));
+  let binary = "";
+  bytes.forEach(byte => binary += String.fromCharCode(byte));
+  return btoa(binary).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/g,"");
+}
+function decodeExportPayload(encoded) {
+  const normalized = encoded.replace(/-/g,"+").replace(/_/g,"/");
+  const padded = normalized + "=".repeat((4 - normalized.length % 4) % 4);
+  const bytes = Uint8Array.from(atob(padded), c => c.charCodeAt(0));
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
+function readExportPayloadFromHash() {
+  if (!window.location.hash.startsWith("#export=")) return null;
+  try { return decodeExportPayload(window.location.hash.slice(8)); }
+  catch (error) { console.error("Uloženou kalkulaci se nepodařilo načíst.", error); return null; }
+}
 
-    const percentFormatter = new Intl.NumberFormat("cs-CZ", {
-      style: "percent",
-      minimumFractionDigits: 1,
-      maximumFractionDigits: 1
-    });
-
-    function element(id) {
-      return document.getElementById(id);
-    }
-
-
-    function createUniqueId() {
-      if (window.crypto && typeof window.crypto.randomUUID === "function") {
-        return window.crypto.randomUUID();
-      }
-
-      return `calc-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-    }
-
-    function encodeExportPayload(payload) {
-      const bytes = new TextEncoder().encode(JSON.stringify(payload));
-      let binary = "";
-      bytes.forEach(byte => {
-        binary += String.fromCharCode(byte);
-      });
-
-      return btoa(binary)
-        .replace(/\+/g, "-")
-        .replace(/\//g, "_")
-        .replace(/=+$/g, "");
-    }
-
-    function decodeExportPayload(encoded) {
-      const normalized = encoded.replace(/-/g, "+").replace(/_/g, "/");
-      const padded = normalized + "=".repeat((4 - normalized.length % 4) % 4);
-      const binary = atob(padded);
-      const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
-      return JSON.parse(new TextDecoder().decode(bytes));
-    }
-
-    function readExportPayloadFromHash() {
-      if (!window.location.hash.startsWith("#export=")) {
-        return null;
-      }
-
-      try {
-        return decodeExportPayload(window.location.hash.slice("#export=".length));
-      } catch (error) {
-        console.error("Exportovanou kalkulaci se nepodařilo načíst.", error);
-        return null;
-      }
-    }
-
-    function readTransportPrefillFromQuery() {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get("source") !== "transport-list") {
-        return null;
-      }
-
-      return {
-        tourName: params.get("tourName") || "",
-        routeKm: params.get("routeKm") || "0",
-        kmRate: params.get("kmRate") || "40",
-        taxParking: params.get("taxParking") || "0"
+function loadParameters() {
+  try {
+    const current = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (current) return { ...DEFAULT_PARAMETERS, ...current };
+    const legacy = JSON.parse(localStorage.getItem(LEGACY_STORAGE_KEY));
+    if (legacy) {
+      const migrated = {
+        routeReserve: legacy.routeReserve,
+        defaultOccupancy: 45,
+        insuranceDailyRate: legacy.insuranceDailyRate,
+        euroRate: legacy.euroRate,
+        gbpRate: legacy.gbpRate,
+        nokRate: legacy.nokRate,
+        sekRate: legacy.sekRate,
+        plnRate: legacy.plnRate,
+        chfRate: legacy.chfRate || 27,
+        baseDiscount: legacy.baseDiscount
       };
+      return { ...DEFAULT_PARAMETERS, ...migrated };
     }
+  } catch (error) { console.warn(error); }
+  return { ...DEFAULT_PARAMETERS };
+}
+function saveParametersToStorage() { localStorage.setItem(STORAGE_KEY, JSON.stringify(parameters)); }
+function populateParameterInputs() {
+  Object.entries(parameterIds).forEach(([key,id]) => { if (element(id)) element(id).value = parameters[key]; });
+  setValue("insuranceDailyRateDisplay", formatNumber(parameters.insuranceDailyRate));
+}
+function readParametersFromInputs() {
+  const next = {};
+  Object.entries(parameterIds).forEach(([key,id]) => next[key] = getNumber(id));
+  if (next.defaultOccupancy < 1) throw new Error("Výchozí obsazenost musí být alespoň 1.");
+  if (["euroRate","gbpRate","nokRate","sekRate","plnRate","chfRate"].some(k => next[k] <= 0)) {
+    throw new Error("Všechny měnové kurzy musí být vyšší než 0.");
+  }
+  if (next.baseDiscount >= 100) throw new Error("Katalogová sleva musí být nižší než 100 %.");
+  return next;
+}
+function setParametersLocked(locked) {
+  parametersLocked = locked;
+  document.querySelectorAll(".parameter-input").forEach(input => input.disabled = locked);
+  element("saveParametersButton").disabled = locked;
+  element("editParametersButton").disabled = !locked;
+  element("restoreParametersButton").disabled = locked;
+  setText("parameterLockLabel", locked ? "Uzamčeno" : "Probíhá úprava");
+}
 
-    function applyTransportPrefill(prefill) {
-      if (!prefill) {
-        return;
-      }
+function getCurrencyRate(code) {
+  return ({
+    CZK: 1,
+    EUR: parameters.euroRate,
+    GBP: parameters.gbpRate,
+    NOK: parameters.nokRate,
+    SEK: parameters.sekRate,
+    PLN: parameters.plnRate,
+    CHF: parameters.chfRate
+  })[code] || 1;
+}
+function convertedCost(id) {
+  return getNumber(id) * getCurrencyRate(element(`${id}Currency`)?.value || "CZK");
+}
+function updateCurrencyLabels() {
+  const ids = [
+    "driverAccommodation","guideAccommodation","guideLocalTransport",
+    "night1","night2","night3","night4","night5","night6",
+    "entry1Price","entry2Price","unpaidEntry1Price","unpaidEntry2Price"
+  ];
+  ids.forEach(id => {
+    const select = element(`${id}Currency`);
+    const label = element(`${id}CurrencyUnit`);
+    if (select && label) label.textContent = select.value;
+  });
+}
+function refreshParameterStrip() {
+  const occupancy = getNumber("effectiveOccupancy") || parameters.defaultOccupancy;
+  setText("activeOccupancy", `obsazenost ${formatNumber(occupancy)} os.`);
+  setText("activeExchangeRates",
+    `EUR ${formatNumber(parameters.euroRate)} | GBP ${formatNumber(parameters.gbpRate)} | NOK ${formatNumber(parameters.nokRate)} | SEK ${formatNumber(parameters.sekRate)} | PLN ${formatNumber(parameters.plnRate)} | CHF ${formatNumber(parameters.chfRate)}`);
+  setText("activeReserve", `rezerva trasy ${formatNumber(parameters.routeReserve)} %`);
+}
 
-      element("tourName").value = prefill.tourName;
-      element("routeKm").value = prefill.routeKm;
-      element("taxParking").value = prefill.taxParking;
+function roundCatalogProposal(value) {
+  if (value <= 0) return 0;
+  return Math.floor(value / 10) * 10 + 9;
+}
 
-      const rateOption = Array.from(element("kmRate").options).some(
-        option => option.value === String(prefill.kmRate)
-      );
-      element("kmRate").value = rateOption ? String(prefill.kmRate) : "40";
+function calculate() {
+  const occupancy = getNumber("effectiveOccupancy");
+  const unpaidPersons = getNumber("unpaidPersons");
 
-      const cleanUrl = new URL(window.location.href);
-      cleanUrl.search = "";
-      window.history.replaceState({}, "", cleanUrl.pathname + cleanUrl.hash);
+  const routeKm = getNumber("routeKm");
+  const estimatedKm = routeKm * (1 + parameters.routeReserve / 100);
+  const transportTotal =
+    estimatedKm * getNumber("kmRate") +
+    getNumber("transportTax") +
+    getNumber("parking") +
+    getNumber("ferry") +
+    convertedCost("driverAccommodation");
+  const transportCostPerPerson = safeDivide(transportTotal, occupancy);
+
+  const guideTotal =
+    getNumber("guideReward") +
+    convertedCost("guideAccommodation") +
+    convertedCost("guideLocalTransport");
+  const guideCostPerPerson = safeDivide(guideTotal, occupancy);
+
+  const nights = [1,2,3,4,5,6].map(n => ({
+    amount: getNumber(`night${n}`),
+    czk: convertedCost(`night${n}`)
+  }));
+  const accommodationBasePerPerson = nights.reduce((sum,n) => sum + n.czk, 0);
+  const accommodationNightCount = nights.filter(n => n.amount > 0).length;
+  const payingAccommodationTotal = accommodationBasePerPerson * occupancy;
+  const unpaidAccommodationTotal = accommodationBasePerPerson * unpaidPersons;
+  const accommodationTotal = payingAccommodationTotal + unpaidAccommodationTotal;
+  const accommodationCostPerPayingPerson = safeDivide(accommodationTotal, occupancy);
+  const accommodationPerPayingPerNightCzk = accommodationNightCount > 0
+    ? accommodationCostPerPayingPerson / accommodationNightCount
+    : 0;
+  const accommodationPerPayingPerNightEur = safeDivide(accommodationPerPayingPerNightCzk, parameters.euroRate);
+
+  const tourDays = getNumber("tourDays");
+  const insuranceBasePerPerson = tourDays * parameters.insuranceDailyRate;
+  const payingInsuranceTotal = insuranceBasePerPerson * occupancy;
+  const unpaidInsuranceTotal = insuranceBasePerPerson * unpaidPersons;
+  const insuranceTotal = payingInsuranceTotal + unpaidInsuranceTotal;
+  const insuranceCostPerPerson = safeDivide(insuranceTotal, occupancy);
+
+  const payingEntryPerPerson = convertedCost("entry1Price") + convertedCost("entry2Price");
+  const payingEntriesTotal = payingEntryPerPerson * occupancy;
+  const unpaidEntryPerPerson = convertedCost("unpaidEntry1Price") + convertedCost("unpaidEntry2Price");
+  const unpaidEntriesTotal = unpaidEntryPerPerson * unpaidPersons;
+  const entriesTotal = payingEntriesTotal + unpaidEntriesTotal;
+  const entriesCostPerPerson = safeDivide(entriesTotal, occupancy);
+
+  const organizerRewardRate = getNumber("organizerRewardRate");
+  const organizerRewardTotal = organizerRewardRate * occupancy;
+  const organizerRewardPerPayingPerson = safeDivide(organizerRewardTotal, occupancy);
+
+  const unpaidGroupTotal = unpaidAccommodationTotal + unpaidInsuranceTotal + unpaidEntriesTotal;
+  const unpaidGroupSharePerPayingPerson = safeDivide(unpaidGroupTotal, occupancy);
+
+  const totalCosts =
+    transportTotal + guideTotal + accommodationTotal + insuranceTotal + entriesTotal + organizerRewardTotal;
+  const costPerPerson = safeDivide(totalCosts, occupancy);
+
+  // Pojištění a vstupy jsou průběžné položky bez marže a neovlivňují procentní marži.
+  const passThroughCostPerPerson = insuranceCostPerPerson + entriesCostPerPerson;
+  const marginBearingCostPerPerson = Math.max(0, costPerPerson - passThroughCostPerPerson);
+
+  // Návrh optimální prodejní ceny vychází z původní logiky kalkulace:
+  // běžné (maržové) náklady × 1,45 + pojištění a vstupy bez navýšení.
+  const optimalSalePrice =
+    marginBearingCostPerPerson * 1.45 +
+    passThroughCostPerPerson;
+
+  const finalSalePrice = getNumber("finalSalePrice");
+  const marginBearingSalePrice = Math.max(0, finalSalePrice - passThroughCostPerPerson);
+  const actualMarginNominal = finalSalePrice > 0
+    ? marginBearingSalePrice - marginBearingCostPerPerson
+    : 0;
+  const actualMarginPercent = marginBearingSalePrice > 0
+    ? actualMarginNominal / marginBearingSalePrice
+    : 0;
+
+  const discount = parameters.baseDiscount / 100;
+  const rawCatalog = finalSalePrice > 0 && discount < 1 ? finalSalePrice / (1 - discount) : 0;
+  const catalogPriceProposal = roundCatalogProposal(rawCatalog);
+
+  lastCalculation = {
+    totalCosts, costPerPerson, passThroughCostPerPerson, optimalSalePrice,
+    actualMarginNominal, actualMarginPercent, catalogPriceProposal
+  };
+
+  setValue("estimatedKm", formatNumber(estimatedKm));
+  setValue("insuranceDailyRateDisplay", formatNumber(parameters.insuranceDailyRate));
+
+  setText("transportTotal", formatMoney(transportTotal));
+  setText("transportCostPerPerson", formatMoney(transportCostPerPerson));
+  setText("guideTotalOutput", formatMoney(guideTotal));
+  setText("guideCostPerPerson", formatMoney(guideCostPerPerson));
+
+  setText("accommodationTotal", formatMoney(accommodationTotal));
+  setText("accommodationPerPayingPerNightCzk", formatMoney(accommodationPerPayingPerNightCzk));
+  setText("accommodationPerPayingPerNightEur", formatEur(accommodationPerPayingPerNightEur));
+  setText("accommodationNightCount", formatNumber(accommodationNightCount));
+
+  setText("insuranceCostPerPerson", formatMoney(insuranceCostPerPerson));
+  setText("insuranceTotal", formatMoney(insuranceTotal));
+  setText("entriesCostPerPerson", formatMoney(entriesCostPerPerson));
+  setText("entriesTotal", formatMoney(entriesTotal));
+
+  setValue("groupInsuranceTotalDisplay", formatNumber(unpaidInsuranceTotal));
+  setValue("groupAccommodationTotalDisplay", formatNumber(unpaidAccommodationTotal));
+  setText("groupInsuranceTotal", formatMoney(unpaidInsuranceTotal));
+  setText("groupAccommodationTotal", formatMoney(unpaidAccommodationTotal));
+  setText("groupEntriesTotal", formatMoney(unpaidEntriesTotal));
+  setText("organizerRewardTotal", formatMoney(organizerRewardTotal));
+  setText("groupSharePerPayingPerson", formatMoney(unpaidGroupSharePerPayingPerson));
+  setText("organizerRewardPerPayingPerson", formatMoney(organizerRewardPerPayingPerson));
+
+  setText("totalCosts", formatMoney(totalCosts));
+  setText("costPerPerson", formatMoney(costPerPerson));
+  setText("optimalSalePrice", formatMoney(optimalSalePrice));
+  setText("catalogPriceProposal", formatMoney(catalogPriceProposal));
+  setText("actualMarginNominal", formatMoney(actualMarginNominal));
+  setText("actualMarginPercent", formatPercent(actualMarginPercent));
+
+  updateCurrencyLabels();
+  refreshParameterStrip();
+  updateMarginStyling(actualMarginNominal, actualMarginPercent);
+  updatePriceStatus(finalSalePrice, costPerPerson, optimalSalePrice, actualMarginPercent);
+}
+
+function updateMarginStyling(nominal, percent) {
+  [element("actualMarginNominal"), element("actualMarginPercent")].forEach(el => {
+    if (!el) return;
+    const positive = nominal >= 0 && percent >= 0;
+    el.classList.toggle("margin-positive", positive);
+    el.classList.toggle("margin-negative", !positive);
+  });
+}
+function updatePriceStatus(finalSalePrice, costPerPerson, optimalSalePrice, actualMarginPercent) {
+  const status = element("priceStatus");
+  status.className = "status";
+  if (finalSalePrice <= 0) {
+    status.classList.add("status-neutral");
+    status.textContent = "Zadejte prodejní cenu, aby bylo možné vyhodnotit marži.";
+  } else if (finalSalePrice < costPerPerson) {
+    status.classList.add("status-danger");
+    status.textContent = `Prodejní cena je pod nákladem na osobu o ${formatMoney(costPerPerson - finalSalePrice)}.`;
+  } else if (finalSalePrice < optimalSalePrice) {
+    status.classList.add("status-warning");
+    status.textContent = `Cena je nad náklady, ale pod návrhem optimální prodejní ceny. Skutečná marže bez pojištění a vstupů je ${formatPercent(actualMarginPercent)}.`;
+  } else {
+    status.classList.add("status-success");
+    status.textContent = `Cena dosahuje alespoň návrhu optimální prodejní ceny. Skutečná marže bez pojištění a vstupů je ${formatPercent(actualMarginPercent)}.`;
+  }
+}
+
+function collectCalculationState() {
+  const fields = {};
+  document.querySelectorAll("input[id], select[id], textarea[id]").forEach(control => fields[control.id] = control.value);
+  return {
+    version: 9,
+    exportId: currentSavedPayload?.exportId || createUniqueId(),
+    createdAt: currentSavedPayload?.createdAt || new Date().toISOString(),
+    parameters: { ...parameters },
+    fields,
+    panels: {
+      parametersOpen: element("parametersPanel").open,
+      groupToursOpen: element("groupToursPanel").open,
+      notesOpen: Boolean(document.querySelector(".calculation-notes")?.open)
     }
-
-    function collectCalculationState() {
-      const fields = {};
-
-      document.querySelectorAll("input[id], select[id], textarea[id]").forEach(control => {
-        fields[control.id] = control.value;
-      });
-
-      return {
-        version: 8,
-        exportId: currentSavedPayload?.exportId || createUniqueId(),
-        createdAt: currentSavedPayload?.createdAt || new Date().toISOString(),
-        parameters: { ...parameters },
-        fields,
-        panels: {
-          parametersOpen: element("parametersPanel").open,
-          groupToursOpen: element("groupToursPanel").open,
-          notesOpen: Boolean(document.querySelector(".calculation-notes")?.open)
-        }
-      };
-    }
-
-    function restoreCalculationState(payload) {
-      if (!payload || !payload.fields) {
-        return;
-      }
-
-      Object.entries(payload.fields).forEach(([id, value]) => {
-        const control = element(id);
-        if (control) {
-          control.value = value;
-        }
-      });
-
-      if (payload.panels) {
-        element("parametersPanel").open = Boolean(payload.panels.parametersOpen);
-        element("groupToursPanel").open = Boolean(payload.panels.groupToursOpen);
-        const notesPanel = document.querySelector(".calculation-notes");
-        if (notesPanel) {
-          notesPanel.open = Boolean(payload.panels.notesOpen);
-        }
-      }
-    }
-
-
-    function loadCalculationDatabase() {
-      try {
-        const saved = JSON.parse(localStorage.getItem(DATABASE_STORAGE_KEY));
-        return Array.isArray(saved) ? saved : [];
-      } catch (error) {
-        console.warn("Databázi kalkulací se nepodařilo načíst.", error);
-        return [];
-      }
-    }
-
-    function saveCalculationToDatabase(payload, exportType = "uloženo") {
-      if (!payload || !payload.exportId) {
-        return null;
-      }
-
-      calculate();
-      const records = loadCalculationDatabase();
-      const record = {
-        id: payload.exportId,
-        createdAt: payload.createdAt || new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        exportType,
-        tourName: payload.fields?.tourName?.trim() || "Bez názvu",
-        summary: {
-          totalCosts: element("totalCosts").textContent,
-          costPerPerson: element("costPerPerson").textContent,
-          optimalSalePrice: element("optimalSalePrice").textContent,
-          finalSalePrice: formatMoney(getNumber("finalSalePrice")),
-          actualMarginPercent: element("actualMarginPercent").textContent
-        },
-        payload
-      };
-
-      const existingIndex = records.findIndex(item => item.id === record.id);
-      if (existingIndex >= 0) {
-        records[existingIndex] = record;
-      } else {
-        records.unshift(record);
-      }
-
-      try {
-        localStorage.setItem(DATABASE_STORAGE_KEY, JSON.stringify(records));
-        return record;
-      } catch (error) {
-        console.error("Kalkulaci se nepodařilo uložit do databáze.", error);
-        alert("Kalkulaci se nepodařilo uložit. Úložiště prohlížeče může být plné.");
-        return null;
-      }
-    }
-
-    function saveCurrentCalculationToDatabase() {
-      calculate();
-      const payload = collectCalculationState();
-      const saved = saveCalculationToDatabase(payload, "uloženo");
-      if (saved) {
-        alert(`Kalkulace „${saved.tourName}“ byla uložena do databáze.`);
-
-        // Při úpravě již uložené kalkulace se přepíše tentýž záznam
-        // a kalkulace se po uložení znovu uzamkne.
-        if (editingSavedCalculation) {
-          lockSavedCalculation(saved.payload);
-        }
-      }
-    }
-
-    function buildExportUrl(payload) {
-      const url = new URL(window.location.href);
-      url.hash = `export=${encodeExportPayload(payload)}`;
-      return url.toString();
-    }
-
-    function exportCalculation() {
-      calculate();
-      const payload = collectCalculationState();
-      saveCalculationToDatabase(payload, "odkaz");
-      const exportUrl = buildExportUrl(payload);
-      window.open(exportUrl, "_blank", "noopener");
-    }
-
-    let pdfExportState = null;
-
-    function groupToursContainsData() {
-      const numericIds = [
-        "tourDays",
-        "unpaidPersons",
-        "unpaidEntriesPerPerson",
-        "entry1Price",
-        "entry2Price"
-      ];
-
-      return numericIds.some(id => getNumber(id) > 0);
-    }
-
-    function exportToPdf() {
-      calculate();
-
-      if (!isExportView || editingSavedCalculation) {
-        const payload = collectCalculationState();
-        saveCalculationToDatabase(payload, "PDF");
-      }
-
-      if (pdfExportState) {
-        return;
-      }
-
-      const notesPanel = document.querySelector(".calculation-notes");
-      pdfExportState = {
-        title: document.title,
-        groupToursOpen: element("groupToursPanel").open,
-        parametersOpen: element("parametersPanel").open,
-        notesOpen: Boolean(notesPanel?.open)
-      };
-
-      // Skupinové položky se do PDF zahrnou jen pokud jsou skutečně použité.
-      element("groupToursPanel").open = groupToursContainsData();
-      element("parametersPanel").open = false;
-      if (notesPanel) {
-        notesPanel.open = false;
-      }
-
-      document.body.classList.add("pdf-export-mode");
-
-      const tourName = element("tourName").value.trim();
-      document.title = tourName
-        ? `Kalkulace - ${tourName}`
-        : "Kalkulace poznávacího zájezdu";
-
-      window.requestAnimationFrame(() => {
-        window.setTimeout(() => window.print(), 60);
-      });
-    }
-
-    function restoreAfterPdfExport() {
-      if (!pdfExportState) {
-        return;
-      }
-
-      element("groupToursPanel").open = pdfExportState.groupToursOpen;
-      element("parametersPanel").open = pdfExportState.parametersOpen;
-      const notesPanel = document.querySelector(".calculation-notes");
-      if (notesPanel) {
-        notesPanel.open = pdfExportState.notesOpen;
-      }
-
-      document.title = pdfExportState.title;
-      document.body.classList.remove("pdf-export-mode");
-      pdfExportState = null;
-    }
-
-    async function copyCurrentExportLink() {
-      const link = window.location.href;
-
-      try {
-        await navigator.clipboard.writeText(link);
-        element("copyExportLinkButton").textContent = "Odkaz zkopírován";
-      } catch (error) {
-        const temporary = document.createElement("textarea");
-        temporary.value = link;
-        temporary.setAttribute("readonly", "");
-        temporary.style.position = "fixed";
-        temporary.style.opacity = "0";
-        document.body.appendChild(temporary);
-        temporary.select();
-        document.execCommand("copy");
-        temporary.remove();
-        element("copyExportLinkButton").textContent = "Odkaz zkopírován";
-      }
-
-      window.setTimeout(() => {
-        element("copyExportLinkButton").textContent = "Kopírovat odkaz";
-      }, 1800);
-    }
-
-    function updateSavedCalculationUrl(payload) {
-      const url = new URL(window.location.href);
-      url.searchParams.delete("pdf");
-      url.hash = `export=${encodeExportPayload(payload)}`;
-      window.history.replaceState({}, "", url.toString());
-    }
-
-    function activateExportView(payload) {
-      currentSavedPayload = payload || currentSavedPayload;
-      editingSavedCalculation = false;
-
-      document.body.classList.add("export-view");
-      element("readonlyBanner").hidden = false;
-      element("savedCalculationBannerText").innerHTML =
-        "<strong>Uložená kalkulace – pouze pro čtení</strong><br>Všechna pole jsou uzamčená. Pro změny ji nejprve odemkni.";
-      element("editSavedCalculationButton").hidden = false;
-      element("copyExportLinkButton").hidden = false;
-      element("exportUniqueId").textContent = payload?.exportId || "bez ID";
-
-      document.querySelectorAll("input, select, textarea").forEach(control => {
-        control.disabled = true;
-      });
-
-      document.querySelectorAll("button").forEach(button => {
-        if (!["copyExportLinkButton", "printButton", "editSavedCalculationButton"].includes(button.id)) {
-          button.disabled = true;
-        } else {
-          button.disabled = false;
-        }
-      });
-
-      const tourName = element("tourName").value.trim();
-      document.title = tourName
-        ? `${tourName} – uložená kalkulace`
-        : "Uložená kalkulace poznávacího zájezdu";
-    }
-
-    function unlockSavedCalculation() {
-      if (!currentSavedPayload) {
-        return;
-      }
-
-      editingSavedCalculation = true;
-      document.body.classList.remove("export-view");
-
-      document.querySelectorAll("input, select, textarea").forEach(control => {
-        control.disabled = false;
-      });
-
-      document.querySelectorAll("button").forEach(button => {
-        button.disabled = false;
-      });
-
-      // Parametry zůstávají při běžné editaci kalkulace uzamčené stejně jako dříve.
-      setParametersLocked(true);
-
-      element("readonlyBanner").hidden = false;
-      element("savedCalculationBannerText").innerHTML =
-        "<strong>Upravujete uloženou kalkulaci</strong><br>Po dokončení klikněte na „Uložit do databáze“. Původní záznam bude aktualizován.";
-      element("editSavedCalculationButton").hidden = true;
-      element("copyExportLinkButton").hidden = true;
-
-      element("tourName").focus();
-    }
-
-    function lockSavedCalculation(payload) {
-      currentSavedPayload = payload;
-      updateSavedCalculationUrl(payload);
-      activateExportView(payload);
-    }
-
-    function leaveSavedCalculationForNew() {
-      currentSavedPayload = null;
-      editingSavedCalculation = false;
-      document.body.classList.remove("export-view");
-      element("readonlyBanner").hidden = true;
-      element("copyExportLinkButton").hidden = true;
-
-      const url = new URL(window.location.href);
-      url.hash = "";
-      url.searchParams.delete("pdf");
-      window.history.replaceState({}, "", url.pathname + url.search);
-    }
-
-    function getNumber(id) {
-      const raw = String(element(id).value ?? "").trim().replace(",", ".");
-      const value = Number(raw);
-      return Number.isFinite(value) ? Math.max(0, value) : 0;
-    }
-
-    function safeDivide(numerator, denominator) {
-      return denominator > 0 ? numerator / denominator : 0;
-    }
-
-    function formatMoney(value) {
-      return moneyFormatter.format(Number.isFinite(value) ? value : 0);
-    }
-
-    function formatNumber(value) {
-      return numberFormatter.format(Number.isFinite(value) ? value : 0);
-    }
-
-    function formatPercent(decimalValue) {
-      return percentFormatter.format(Number.isFinite(decimalValue) ? decimalValue : 0);
-    }
-
-    function setText(id, value) {
-      element(id).textContent = value;
-    }
-
-    function setValue(id, value) {
-      element(id).value = value;
-    }
-
-    function loadParameters() {
-      try {
-        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-        return { ...DEFAULT_PARAMETERS, ...(saved || {}) };
-      } catch (error) {
-        console.warn("Parametry se nepodařilo načíst, používají se výchozí hodnoty.", error);
-        return { ...DEFAULT_PARAMETERS };
-      }
-    }
-
-    function saveParametersToStorage() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(parameters));
-    }
-
-    function populateParameterInputs() {
-      Object.entries(parameterIds).forEach(([key, id]) => {
-        element(id).value = parameters[key];
-      });
-      setValue("insuranceDailyRateDisplay", formatNumber(parameters.insuranceDailyRate));
-    }
-
-    function readParametersFromInputs() {
-      const next = {};
-      Object.entries(parameterIds).forEach(([key, id]) => {
-        next[key] = getNumber(id);
-      });
-
-      if (next.defaultOccupancy <= 0) {
-        throw new Error("Výchozí obsazenost autobusu musí být vyšší než 0.");
-      }
-
-      if (next.insuranceDailyRate < 0) {
-        throw new Error("Sazba pojištění nesmí být záporná.");
-      }
-
-      const currencyRateKeys = ["euroRate", "gbpRate", "nokRate", "sekRate", "plnRate"];
-      if (currencyRateKeys.some(key => next[key] <= 0)) {
-        throw new Error("Všechny měnové kurzy musí být vyšší než 0.");
-      }
-
-      if (next.baseDiscount >= 100) {
-        throw new Error("Základní sleva musí být nižší než 100 %.");
-      }
-
-      return next;
-    }
-
-    function setParametersLocked(locked) {
-      parametersLocked = locked;
-
-      document.querySelectorAll(".parameter-input").forEach(input => {
-        input.disabled = locked;
-      });
-
-      element("saveParametersButton").disabled = locked;
-      element("editParametersButton").disabled = !locked;
-      element("restoreParametersButton").disabled = locked;
-      element("parameterLockLabel").textContent = locked ? "Uzamčeno" : "Probíhá úprava";
-    }
-
-    function getCurrencyRate(currencyCode) {
-      const rates = {
-        CZK: 1,
-        EUR: parameters.euroRate,
-        GBP: parameters.gbpRate,
-        NOK: parameters.nokRate,
-        SEK: parameters.sekRate,
-        PLN: parameters.plnRate
-      };
-
-      return rates[currencyCode] || 1;
-    }
-
-    function updateCurrencyLabels() {
-      [1, 2, 3, 4].forEach(nightNumber => {
-        setText(
-          `night${nightNumber}CurrencyUnit`,
-          element(`night${nightNumber}Currency`).value
-        );
-      });
-
-      setText("accommodationBufferCurrencyUnit", element("accommodationBufferCurrency").value);
-      setText("entry1CurrencyUnit", element("entry1Currency").value);
-      setText("entry2CurrencyUnit", element("entry2Currency").value);
-    }
-
-    function refreshParameterStrip() {
-      const occupancy = getNumber("effectiveOccupancy") || parameters.defaultOccupancy;
-      setText("activeOccupancy", `obsazenost ${formatNumber(occupancy)} os.`);
-      setText(
-        "activeExchangeRates",
-        `kurzy EUR ${formatNumber(parameters.euroRate)} | GBP ${formatNumber(parameters.gbpRate)} | NOK ${formatNumber(parameters.nokRate)} | SEK ${formatNumber(parameters.sekRate)} | PLN ${formatNumber(parameters.plnRate)}`
-      );
-      setText("activeReserve", `rezerva trasy ${formatNumber(parameters.routeReserve)} %`);
-
-      const sameMarkup =
-        parameters.busMarkup === parameters.guideMarkup &&
-        parameters.busMarkup === parameters.accommodationMarkup;
-
-      setText(
-        "activeMarkup",
-        sameMarkup
-          ? `přirážky ${formatNumber(parameters.busMarkup)} %`
-          : `přirážky BUS ${formatNumber(parameters.busMarkup)} %, průvodce ${formatNumber(parameters.guideMarkup)} %, ubytování ${formatNumber(parameters.accommodationMarkup)} %`
-      );
-    }
-
-    function roundCatalogProposal(catalogPrice) {
-      if (catalogPrice <= 0) {
-        return 0;
-      }
-
-      return Math.floor(catalogPrice / 10) * 10 + 9;
-    }
-
-    function calculate() {
-      const occupancy = getNumber("effectiveOccupancy");
-
-      const routeKm = getNumber("routeKm");
-      const estimatedKm = routeKm * (1 + parameters.routeReserve / 100);
-      const kmRate = getNumber("kmRate");
-      const transportExtras = getNumber("taxParking") + getNumber("ferry");
-
-      const transportTotal = estimatedKm * kmRate + transportExtras;
-      const transportCostPerPerson = safeDivide(transportTotal, occupancy);
-      const transportSalePerPerson =
-        transportCostPerPerson * (1 + parameters.busMarkup / 100);
-
-      const guideBaseTotal = getNumber("guideTotal");
-      const guideSurcharge = getNumber("guideSurcharge");
-      const guideTotal = guideBaseTotal + guideSurcharge;
-      const guideCostPerPerson = safeDivide(guideTotal, occupancy);
-      const guideSalePerPerson =
-        guideCostPerPerson * (1 + parameters.guideMarkup / 100);
-
-      const realAccommodationCostPerPerson = [1, 2, 3, 4].reduce(
-        (sum, nightNumber) =>
-          sum +
-          getNumber(`night${nightNumber}`) *
-            getCurrencyRate(element(`night${nightNumber}Currency`).value),
-        0
-      );
-      const accommodationBufferTotal =
-        getNumber("accommodationBuffer") *
-        getCurrencyRate(element("accommodationBufferCurrency").value);
-
-      const unpaidPersons = getNumber("unpaidPersons");
-      const unpaidAccommodationTotal =
-        realAccommodationCostPerPerson * unpaidPersons;
-      const payingAccommodationTotal =
-        realAccommodationCostPerPerson * occupancy;
-      const accommodationTotal =
-        payingAccommodationTotal + unpaidAccommodationTotal + accommodationBufferTotal;
-      const accommodationCostPerPerson = safeDivide(accommodationTotal, occupancy);
-      const accommodationSalePerPerson =
-        accommodationCostPerPerson * (1 + parameters.accommodationMarkup / 100);
-
-      const tourDays = getNumber("tourDays");
-      const baseInsuranceCostPerPerson =
-        tourDays * parameters.insuranceDailyRate;
-      const unpaidInsuranceTotal =
-        baseInsuranceCostPerPerson * unpaidPersons;
-      const payingInsuranceTotal = baseInsuranceCostPerPerson * occupancy;
-      const insuranceTotal = payingInsuranceTotal + unpaidInsuranceTotal;
-      const insuranceCostPerPerson = safeDivide(insuranceTotal, occupancy);
-      const insuranceSalePerPerson = insuranceCostPerPerson;
-
-      const entry1CostPerPerson =
-        getNumber("entry1Price") * getCurrencyRate(element("entry1Currency").value);
-      const entry2CostPerPerson =
-        getNumber("entry2Price") * getCurrencyRate(element("entry2Currency").value);
-      const baseEntriesCostPerPerson = entry1CostPerPerson + entry2CostPerPerson;
-      const unpaidEntriesPerPerson = getNumber("unpaidEntriesPerPerson");
-      const unpaidEntriesTotal = unpaidEntriesPerPerson * unpaidPersons;
-      const payingEntriesTotal = baseEntriesCostPerPerson * occupancy;
-      const entriesTotal = payingEntriesTotal + unpaidEntriesTotal;
-      const entriesCostPerPerson = safeDivide(entriesTotal, occupancy);
-      const entriesSalePerPerson = entriesCostPerPerson;
-
-      const unpaidGroupTotal =
-        unpaidAccommodationTotal + unpaidInsuranceTotal + unpaidEntriesTotal;
-      const unpaidGroupSharePerPayingPerson = safeDivide(unpaidGroupTotal, occupancy);
-
-      const totalCosts =
-        transportTotal +
-        guideTotal +
-        accommodationTotal +
-        insuranceTotal +
-        entriesTotal;
-
-      const costPerPerson =
-        transportCostPerPerson +
-        guideCostPerPerson +
-        accommodationCostPerPerson +
-        insuranceCostPerPerson +
-        entriesCostPerPerson;
-
-      const optimalSalePrice =
-        transportSalePerPerson +
-        guideSalePerPerson +
-        accommodationSalePerPerson +
-        insuranceSalePerPerson +
-        entriesSalePerPerson;
-
-      // Pojištění a vstupy jsou průběžné položky bez marže.
-      // Z výpočtu marže je proto odečítáme jak z nákladové, tak z prodejní základny.
-      const passThroughCostPerPerson =
-        insuranceCostPerPerson + entriesCostPerPerson;
-      const marginBearingCostPerPerson = Math.max(
-        0,
-        costPerPerson - passThroughCostPerPerson
-      );
-      const optimalMarginBearingSalePrice = Math.max(
-        0,
-        optimalSalePrice - passThroughCostPerPerson
-      );
-
-      const optimalMarginNominal =
-        optimalMarginBearingSalePrice - marginBearingCostPerPerson;
-      const optimalMarginPercent = safeDivide(
-        optimalMarginNominal,
-        optimalMarginBearingSalePrice
-      );
-
-      const finalSalePrice = getNumber("finalSalePrice");
-      const discountDecimal = parameters.baseDiscount / 100;
-      const calculatedCatalogPrice =
-        finalSalePrice > 0 && discountDecimal < 1
-          ? finalSalePrice / (1 - discountDecimal)
-          : 0;
-
-      const catalogPriceProposal = roundCatalogProposal(calculatedCatalogPrice);
-      const actualMarginBearingSalePrice = Math.max(
-        0,
-        finalSalePrice - passThroughCostPerPerson
-      );
-      const actualMarginNominal =
-        finalSalePrice > 0
-          ? actualMarginBearingSalePrice - marginBearingCostPerPerson
-          : 0;
-      const actualMarginPercent =
-        actualMarginBearingSalePrice > 0
-          ? safeDivide(actualMarginNominal, actualMarginBearingSalePrice)
-          : 0;
-
-      setValue("estimatedKm", formatNumber(estimatedKm));
-      setValue("insuranceDailyRateDisplay", formatNumber(parameters.insuranceDailyRate));
-
-      setText("transportTotal", formatMoney(transportTotal));
-      setText("transportCostPerPerson", formatMoney(transportCostPerPerson));
-      setText("transportSalePerPerson", formatMoney(transportSalePerPerson));
-
-      setText("guideTotalOutput", formatMoney(guideTotal));
-      setText("guideCostPerPerson", formatMoney(guideCostPerPerson));
-      setText("guideSalePerPerson", formatMoney(guideSalePerPerson));
-
-      setText("accommodationRealPerPerson", formatMoney(realAccommodationCostPerPerson));
-      setText("accommodationBufferOutput", formatMoney(accommodationBufferTotal));
-      setText("accommodationTotal", formatMoney(accommodationTotal));
-      setText("accommodationCostPerPerson", formatMoney(accommodationCostPerPerson));
-      setText("accommodationSalePerPerson", formatMoney(accommodationSalePerPerson));
-
-      setText("insuranceCostPerPerson", formatMoney(insuranceCostPerPerson));
-      setText("insuranceTotal", formatMoney(insuranceTotal));
-      setText("insuranceSalePerPerson", formatMoney(insuranceSalePerPerson));
-
-      setValue("groupInsuranceTotalDisplay", formatNumber(unpaidInsuranceTotal));
-      setValue(
-        "groupAccommodationPerPersonDisplay",
-        formatNumber(realAccommodationCostPerPerson)
-      );
-      setValue(
-        "groupAccommodationTotalDisplay",
-        formatNumber(unpaidAccommodationTotal)
-      );
-      setValue("groupEntriesTotalDisplay", formatNumber(unpaidEntriesTotal));
-      setText("groupInsuranceTotal", formatMoney(unpaidInsuranceTotal));
-      setText("groupAccommodationTotal", formatMoney(unpaidAccommodationTotal));
-      setText("groupEntriesTotal", formatMoney(unpaidEntriesTotal));
-      setText(
-        "groupSharePerPayingPerson",
-        formatMoney(unpaidGroupSharePerPayingPerson)
-      );
-
-      setText("entriesCostPerPerson", formatMoney(entriesCostPerPerson));
-      setText("entriesTotal", formatMoney(entriesTotal));
-      setText("entriesSalePerPerson", formatMoney(entriesSalePerPerson));
-
-      setText("totalCosts", formatMoney(totalCosts));
-      setText("costPerPerson", formatMoney(costPerPerson));
-      setText("optimalSalePrice", formatMoney(optimalSalePrice));
-      setText("optimalMarginNominal", formatMoney(optimalMarginNominal));
-      setText("optimalMarginPercent", formatPercent(optimalMarginPercent));
-
-      setText("calculatedCatalogPrice", formatMoney(calculatedCatalogPrice));
-      setText("catalogPriceProposal", formatMoney(catalogPriceProposal));
-      setText("actualMarginNominal", formatMoney(actualMarginNominal));
-      setText("actualMarginPercent", formatPercent(actualMarginPercent));
-
-      updateCurrencyLabels();
-      refreshParameterStrip();
-      updateMarginStyling(actualMarginNominal, actualMarginPercent);
-      updatePriceStatus(finalSalePrice, costPerPerson, optimalSalePrice, actualMarginPercent);
-    }
-
-    function updateMarginStyling(actualMarginNominal, actualMarginPercent) {
-      const nominal = element("actualMarginNominal");
-      const percent = element("actualMarginPercent");
-      const positive = actualMarginNominal >= 0 && actualMarginPercent >= 0;
-
-      [nominal, percent].forEach(item => {
-        item.classList.toggle("margin-positive", positive);
-        item.classList.toggle("margin-negative", !positive);
-      });
-    }
-
-    function updatePriceStatus(finalSalePrice, costPerPerson, optimalSalePrice, actualMarginPercent) {
-      const status = element("priceStatus");
-      status.className = "status";
-
-      if (finalSalePrice <= 0) {
-        status.classList.add("status-neutral");
-        status.textContent = "Zadejte prodejní cenu, aby bylo možné vyhodnotit marži.";
-        return;
-      }
-
-      if (finalSalePrice < costPerPerson) {
-        status.classList.add("status-danger");
-        status.textContent = `Prodejní cena je pod nákladem na osobu. Ztráta činí ${formatMoney(costPerPerson - finalSalePrice)} na osobu.`;
-        return;
-      }
-
-      if (finalSalePrice < optimalSalePrice) {
-        status.classList.add("status-warning");
-        status.textContent = `Cena je nad náklady, ale pod optimální prodejní cenou. Skutečná marže je ${formatPercent(actualMarginPercent)}.`;
-        return;
-      }
-
-      status.classList.add("status-success");
-      status.textContent = `Cena dosahuje alespoň optimální úrovně. Skutečná marže je ${formatPercent(actualMarginPercent)}.`;
-    }
-
-    function resetCalculation() {
-      const fieldsToReset = [
-        "tourName",
-        "routeKm",
-        "taxParking",
-        "ferry",
-        "guideTotal",
-        "guideSurcharge",
-        "night1",
-        "night2",
-        "night3",
-        "night4",
-        "accommodationBuffer",
-        "tourDays",
-        "unpaidPersons",
-        "unpaidEntriesPerPerson",
-        "entry1Price",
-        "entry2Price",
-        "finalSalePrice"
-      ];
-
-      fieldsToReset.forEach(id => {
-        const input = element(id);
-        input.value = input.tagName === "TEXTAREA" || input.type === "text" ? "" : "0";
-      });
-
-      element("effectiveOccupancy").value = parameters.defaultOccupancy;
-      element("kmRate").value = "40";
-      [1, 2, 3, 4].forEach(nightNumber => {
-        element(`night${nightNumber}Currency`).value = "EUR";
-      });
-      element("accommodationBufferCurrency").value = "CZK";
-      element("entry1Currency").value = "EUR";
-      element("entry2Currency").value = "EUR";
-      calculate();
-      element("tourName").focus();
-    }
-
-    document.querySelectorAll(".calculation-input").forEach(input => {
-      input.addEventListener("input", calculate);
-      input.addEventListener("change", calculate);
-    });
-
-    element("saveParametersButton").addEventListener("click", () => {
-      try {
-        parameters = readParametersFromInputs();
-        saveParametersToStorage();
-        setParametersLocked(true);
-        setValue("insuranceDailyRateDisplay", formatNumber(parameters.insuranceDailyRate));
-        refreshParameterStrip();
-        calculate();
-      } catch (error) {
-        alert(error.message);
-      }
-    });
-
-    element("editParametersButton").addEventListener("click", () => {
-      setParametersLocked(false);
-      element("parametersPanel").open = true;
-      element("paramBusMarkup").focus();
-    });
-
-    element("restoreParametersButton").addEventListener("click", () => {
-      parameters = { ...DEFAULT_PARAMETERS };
-      populateParameterInputs();
-    });
-
-    element("openParametersButton").addEventListener("click", () => {
-      element("parametersPanel").open = true;
-      element("parametersPanel").scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-
-    element("resetButton").addEventListener("click", () => {
-      const hasEnteredData = [
-        "routeKm",
-        "taxParking",
-        "ferry",
-        "guideTotal",
-        "guideSurcharge",
-        "night1",
-        "night2",
-        "night3",
-        "night4",
-        "accommodationBuffer",
-        "tourDays",
-        "unpaidPersons",
-        "unpaidEntriesPerPerson",
-        "entry1Price",
-        "entry2Price",
-        "finalSalePrice"
-      ].some(id => getNumber(id) > 0) || element("tourName").value.trim() !== "";
-
-      if (!hasEnteredData || confirm("Opravdu chcete vymazat rozepsanou kalkulaci?")) {
-        if (editingSavedCalculation || currentSavedPayload) {
-          leaveSavedCalculationForNew();
-        }
-        resetCalculation();
-      }
-    });
-
-    element("exportButton").addEventListener("click", exportCalculation);
-    element("pdfExportButton").addEventListener("click", exportToPdf);
-    element("saveDatabaseButton").addEventListener("click", saveCurrentCalculationToDatabase);
-    element("editSavedCalculationButton").addEventListener("click", unlockSavedCalculation);
-    element("copyExportLinkButton").addEventListener("click", copyCurrentExportLink);
-    element("printButton").addEventListener("click", () => window.print());
-    window.addEventListener("afterprint", restoreAfterPdfExport);
-
-    populateParameterInputs();
-
-    if (exportPayload) {
-      restoreCalculationState(exportPayload);
-    } else {
-      element("effectiveOccupancy").value = parameters.defaultOccupancy;
-      applyTransportPrefill(transportPrefill);
-    }
-
+  };
+}
+function restoreCalculationState(payload) {
+  if (!payload?.fields) return;
+  Object.entries(payload.fields).forEach(([id,value]) => {
+    const control = element(id);
+    if (control) control.value = value;
+  });
+
+  // Zpětná kompatibilita se staršími uloženými kalkulacemi.
+  // Původní společnou položku „Daň + parkovné“ převedeme do daně,
+  // starý náklad/přirážku průvodce sloučíme do jeho odměny.
+  if (payload.fields.taxParking != null && payload.fields.transportTax == null) {
+    setValue("transportTax", payload.fields.taxParking);
+  }
+  if (payload.fields.guideTotal != null && payload.fields.guideReward == null) {
+    const oldGuide = Number(String(payload.fields.guideTotal).replace(",", ".")) || 0;
+    const oldExtra = Number(String(payload.fields.guideSurcharge || 0).replace(",", ".")) || 0;
+    setValue("guideReward", oldGuide + oldExtra);
+  }
+  if (payload.fields.unpaidEntriesPerPerson != null && payload.fields.unpaidEntry1Price == null) {
+    setValue("unpaidEntry1Price", payload.fields.unpaidEntriesPerPerson);
+    element("unpaidEntry1PriceCurrency").value = "CZK";
+  }
+
+  if (payload.parameters) parameters = { ...DEFAULT_PARAMETERS, ...payload.parameters, chfRate: payload.parameters.chfRate || 27 };
+  if (payload.panels) {
+    element("parametersPanel").open = Boolean(payload.panels.parametersOpen);
+    element("groupToursPanel").open = Boolean(payload.panels.groupToursOpen);
+    const notes = document.querySelector(".calculation-notes");
+    if (notes) notes.open = Boolean(payload.panels.notesOpen);
+  }
+}
+
+function loadCalculationDatabase() {
+  try {
+    const data = JSON.parse(localStorage.getItem(DATABASE_STORAGE_KEY));
+    return Array.isArray(data) ? data : [];
+  } catch { return []; }
+}
+function saveCalculationToDatabase(payload, exportType="uloženo") {
+  calculate();
+  const records = loadCalculationDatabase();
+  const record = {
+    id: payload.exportId,
+    createdAt: payload.createdAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    exportType,
+    tourName: payload.fields?.tourName?.trim() || "Bez názvu",
+    summary: {
+      totalCosts: formatMoney(lastCalculation.totalCosts),
+      costPerPerson: formatMoney(lastCalculation.costPerPerson),
+      optimalSalePrice: formatMoney(lastCalculation.optimalSalePrice),
+      finalSalePrice: formatMoney(getNumber("finalSalePrice")),
+      actualMarginPercent: formatPercent(lastCalculation.actualMarginPercent)
+    },
+    payload
+  };
+  const idx = records.findIndex(item => item.id === record.id);
+  if (idx >= 0) records[idx] = record; else records.unshift(record);
+  try { localStorage.setItem(DATABASE_STORAGE_KEY, JSON.stringify(records)); return record; }
+  catch (error) { alert("Kalkulaci se nepodařilo uložit. Úložiště prohlížeče může být plné."); return null; }
+}
+function saveCurrentCalculationToDatabase() {
+  calculate();
+  const payload = collectCalculationState();
+  const saved = saveCalculationToDatabase(payload, "uloženo");
+  if (!saved) return;
+  alert(`Kalkulace „${saved.tourName}“ byla uložena do databáze.`);
+  if (editingSavedCalculation) lockSavedCalculation(saved.payload);
+}
+
+function buildExportUrl(payload) {
+  const url = new URL(window.location.href);
+  url.searchParams.delete("pdf");
+  url.hash = `export=${encodeExportPayload(payload)}`;
+  return url.toString();
+}
+function exportCalculation() {
+  calculate();
+  const payload = collectCalculationState();
+  saveCalculationToDatabase(payload, "odkaz");
+  window.open(buildExportUrl(payload), "_blank", "noopener");
+}
+
+function groupToursContainsData() {
+  return ["tourDays","unpaidPersons","entry1Price","entry2Price","unpaidEntry1Price","unpaidEntry2Price","organizerRewardRate"]
+    .some(id => getNumber(id) > 0);
+}
+function exportToPdf() {
+  calculate();
+  if (!currentSavedPayload || editingSavedCalculation) saveCalculationToDatabase(collectCalculationState(), "PDF");
+  if (pdfExportState) return;
+  const notes = document.querySelector(".calculation-notes");
+  pdfExportState = {
+    title: document.title,
+    groupToursOpen: element("groupToursPanel").open,
+    parametersOpen: element("parametersPanel").open,
+    notesOpen: Boolean(notes?.open)
+  };
+  element("groupToursPanel").open = groupToursContainsData();
+  element("parametersPanel").open = false;
+  if (notes) notes.open = false;
+  document.body.classList.add("pdf-export-mode");
+  document.title = element("tourName").value.trim() ? `Kalkulace - ${element("tourName").value.trim()}` : "Kalkulace poznávacího zájezdu";
+  requestAnimationFrame(() => setTimeout(() => window.print(), 60));
+}
+function restoreAfterPdfExport() {
+  if (!pdfExportState) return;
+  element("groupToursPanel").open = pdfExportState.groupToursOpen;
+  element("parametersPanel").open = pdfExportState.parametersOpen;
+  const notes = document.querySelector(".calculation-notes");
+  if (notes) notes.open = pdfExportState.notesOpen;
+  document.title = pdfExportState.title;
+  document.body.classList.remove("pdf-export-mode");
+  pdfExportState = null;
+}
+
+function activateExportView(payload) {
+  currentSavedPayload = payload || currentSavedPayload;
+  editingSavedCalculation = false;
+  document.body.classList.add("export-view");
+  element("readonlyBanner").hidden = false;
+  element("savedCalculationBannerText").innerHTML = "<strong>Uložená kalkulace – pouze pro čtení</strong><br>Všechna pole jsou uzamčená. Pro změny ji nejprve odemkni.";
+  element("editSavedCalculationButton").hidden = false;
+  setText("exportUniqueId", payload?.exportId || "bez ID");
+  document.querySelectorAll("input, select, textarea").forEach(control => control.disabled = true);
+  document.querySelectorAll("button").forEach(button => {
+    button.disabled = !["printButton","pdfExportButton","editSavedCalculationButton"].includes(button.id);
+  });
+  const name = element("tourName").value.trim();
+  document.title = name ? `${name} – uložená kalkulace` : "Uložená kalkulace";
+}
+function unlockSavedCalculation() {
+  if (!currentSavedPayload) return;
+  editingSavedCalculation = true;
+  document.body.classList.remove("export-view");
+  document.querySelectorAll("input, select, textarea").forEach(control => control.disabled = false);
+  document.querySelectorAll("button").forEach(button => button.disabled = false);
+  setParametersLocked(true);
+  element("readonlyBanner").hidden = false;
+  element("savedCalculationBannerText").innerHTML = "<strong>Upravujete uloženou kalkulaci</strong><br>Po dokončení klikněte na „Uložit do databáze“. Původní záznam bude aktualizován.";
+  element("editSavedCalculationButton").hidden = true;
+  element("tourName").focus();
+}
+function lockSavedCalculation(payload) {
+  currentSavedPayload = payload;
+  const url = new URL(window.location.href);
+  url.searchParams.delete("pdf");
+  url.hash = `export=${encodeExportPayload(payload)}`;
+  history.replaceState({}, "", url.toString());
+  activateExportView(payload);
+}
+function leaveSavedCalculationForNew() {
+  currentSavedPayload = null;
+  editingSavedCalculation = false;
+  document.body.classList.remove("export-view");
+  element("readonlyBanner").hidden = true;
+  const url = new URL(window.location.href);
+  url.hash = "";
+  url.searchParams.delete("pdf");
+  history.replaceState({}, "", url.pathname + url.search);
+}
+
+function resetCalculation() {
+  const hasData = Array.from(document.querySelectorAll(".calculation-input, #tourName, #tourGuarantor"))
+    .some(el => (el.type === "number" ? Number(el.value) > 0 : String(el.value).trim() !== "" && !["40","45","EUR","0"].includes(String(el.value))));
+  if (hasData && !confirm("Opravdu chcete vymazat rozepsanou kalkulaci?")) return;
+  leaveSavedCalculationForNew();
+  document.querySelectorAll("input[id]").forEach(input => {
+    if (input.readOnly) return;
+    if (["tourName","tourGuarantor"].includes(input.id)) input.value = "";
+    else if (input.id === "effectiveOccupancy") input.value = parameters.defaultOccupancy;
+    else input.value = "0";
+  });
+  document.querySelectorAll("select.currency-select").forEach(select => select.value = "EUR");
+  element("kmRate").value = "40";
+  element("organizerRewardRate").value = "0";
+  element("groupToursPanel").open = false;
+  calculate();
+  element("tourName").focus();
+}
+
+// Events
+populateParameterInputs();
+if (!currentSavedPayload) setValue("effectiveOccupancy", parameters.defaultOccupancy);
+else restoreCalculationState(currentSavedPayload);
+setParametersLocked(true);
+
+if (currentSavedPayload) {
+  activateExportView(currentSavedPayload);
+}
+
+calculate();
+
+document.querySelectorAll(".calculation-input").forEach(control => {
+  control.addEventListener("input", calculate);
+  control.addEventListener("change", calculate);
+});
+document.querySelectorAll(".parameter-input").forEach(control => control.addEventListener("input", () => {}));
+
+element("saveParametersButton").addEventListener("click", () => {
+  try {
+    parameters = readParametersFromInputs();
+    saveParametersToStorage();
     setParametersLocked(true);
-    updateCurrencyLabels();
-    refreshParameterStrip();
+    if (!currentSavedPayload && getNumber("effectiveOccupancy") <= 0) setValue("effectiveOccupancy", parameters.defaultOccupancy);
     calculate();
+  } catch (error) { alert(error.message); }
+});
+element("editParametersButton").addEventListener("click", () => {
+  setParametersLocked(false);
+  element("parametersPanel").open = true;
+  element("paramRouteReserve").focus();
+});
+element("restoreParametersButton").addEventListener("click", () => {
+  parameters = { ...DEFAULT_PARAMETERS };
+  populateParameterInputs();
+});
+element("openParametersButton").addEventListener("click", () => {
+  element("parametersPanel").open = true;
+  element("parametersPanel").scrollIntoView({ behavior: "smooth", block: "start" });
+});
+element("saveDatabaseButton").addEventListener("click", saveCurrentCalculationToDatabase);
+element("exportButton").addEventListener("click", exportCalculation);
+element("pdfExportButton").addEventListener("click", exportToPdf);
+element("printButton").addEventListener("click", exportToPdf);
+element("resetButton").addEventListener("click", resetCalculation);
+element("editSavedCalculationButton").addEventListener("click", unlockSavedCalculation);
+window.addEventListener("afterprint", restoreAfterPdfExport);
 
-    if (exportPayload) {
-      activateExportView(exportPayload);
-      if (autoPrintExport) {
-        window.setTimeout(() => exportToPdf(), 180);
-      }
-    }
-  </script>
+const autoPrint = Boolean(currentSavedPayload) && new URLSearchParams(window.location.search).get("pdf") === "1";
+if (autoPrint) setTimeout(exportToPdf, 250);
+</script>
 </body>
 </html>
